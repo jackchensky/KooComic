@@ -2,7 +2,6 @@ local JSON = require("json")
 local ltn12 = require("ltn12")
 local socketutil = require("socketutil")
 local http = require("socket.http")
-local https = require("ssl.https")
 local Util = require("koobone.util")
 
 local Api = {}
@@ -12,10 +11,6 @@ Api.BASE = "https://bookof.hk"
 Api.WEB_VERSION = "7"
 Api.CLIENT_VERSION = "KOOBONE/5.0.0"
 
-local function transportFor(url)
-    return tostring(url or ""):match("^https://") and https or http
-end
-
 function Api:new(settings)
     return setmetatable({ settings = assert(settings, "settings required") }, self)
 end
@@ -23,7 +18,7 @@ end
 function Api:headers(extra, include_session)
     local headers = {
         ["Accept"] = "*/*",
-        ["User-Agent"] = "KOReader-KOOBONE/0.2",
+        ["User-Agent"] = "KOReader-KOOBONE/0.3.1",
         ["X-KB-FROM"] = self.CLIENT_VERSION .. " WEB(" .. self.WEB_VERSION .. ") GET /web.htm",
         ["Referer"] = self.BASE .. "/web.htm",
     }
@@ -48,12 +43,19 @@ function Api:request(options)
     options.headers = options.headers or self:headers(nil, options.include_session)
     options.redirect = options.redirect == true
     socketutil:set_timeout(options.block_timeout or 20, options.total_timeout or 90)
-    local transport = transportFor(options.url)
-    local called, first, code, headers, status = pcall(transport.request, options)
+    -- KOReader's LuaSocket performs its own HTTPS adjustment when an https://
+    -- URL is passed to socket.http.request. Calling ssl.https.request directly
+    -- bypasses that compatibility path on some Kindle builds and can fail for
+    -- redirected CDN downloads even though the JSON requests still work.
+    local called, first, raw_code, headers, status = pcall(http.request, options)
     socketutil:reset_timeout()
     if not called then return nil, Util.cleanMessage(first) end
-    code = tonumber(code)
-    if not code then return nil, Util.cleanMessage(status or first or "network error") end
+    local code = tonumber(raw_code)
+    if not code then
+        -- LuaSocket returns nil, error_message for transport failures. Preserve
+        -- the second value before converting HTTP status codes to numbers.
+        return nil, Util.cleanMessage(status or raw_code or first or "network error")
+    end
     local body = chunks and table.concat(chunks) or first
     return {
         code = code,
@@ -230,7 +232,7 @@ function Api:download(url, part_path, options)
         redirect = true,
         headers = options.headers or {
             ["Accept"] = "*/*",
-            ["User-Agent"] = "KOReader-KOOBONE/0.2",
+            ["User-Agent"] = "KOReader-KOOBONE/0.3.1",
             ["X-KB-FROM"] = self.CLIENT_VERSION .. " WEB(" .. self.WEB_VERSION .. ") FETCH /web.htm",
             ["Referer"] = self.BASE .. "/",
         },

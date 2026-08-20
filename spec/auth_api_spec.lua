@@ -7,17 +7,20 @@ package.preload["socket"] = function()
     return { gettime = function() return os.time() end }
 end
 package.preload["socket.http"] = function()
-    return { request = function() error("unexpected HTTP request") end }
-end
-package.preload["ssl.https"] = function()
     return {
         request = function(options)
             requests[#requests + 1] = options
             local response = assert(table.remove(responses, 1), "missing fake response")
             if response.error then error(response.error) end
+            if response.transport_error then return nil, response.transport_error end
             if options.sink and response.body then options.sink(response.body) end
             return 1, response.code, response.headers or {}, response.status or "OK"
         end,
+    }
+end
+package.preload["ssl.https"] = function()
+    return {
+        request = function() error("ssl.https.request must not be called directly") end,
     }
 end
 package.preload["socketutil"] = function()
@@ -91,5 +94,18 @@ assert(requests[4].url == "https://bookof.hk/login_do.php")
 assert(requests[4].headers.Cookie == "VLIBSID=session-two")
 assert(account.vlibsid == "session-three")
 assert(account.kbskey == "login-key")
+
+-- KOReader routes https:// URLs through socket.http so its compatibility
+-- adjustments remain active. Also retain LuaSocket's transport error instead
+-- of replacing it with the generic text "network error".
+responses[#responses + 1] = { transport_error = "timeout" }
+local response, request_err = api:request{
+    url = "https://download.example.test/book.epub",
+    method = "GET",
+    include_session = false,
+}
+assert(response == nil)
+assert(request_err == "timeout")
+assert(requests[5].url == "https://download.example.test/book.epub")
 
 print("auth API spec: OK")
