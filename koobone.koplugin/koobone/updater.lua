@@ -284,7 +284,8 @@ function Updater:install(release, on_progress)
     })
     if not ok then removeFile(archive); removeTree(stage); return nil, err end
 
-    local size = tonumber(lfs.attributes(archive, "size")) or 0
+    local archive_size = lfs.attributes(archive, "size")
+    local size = tonumber(archive_size) or 0
     if size ~= tonumber(release.size) then
         removeFile(archive); removeTree(stage)
         return nil, "更新包大小校验失败"
@@ -345,4 +346,3 @@ function Updater:koreaderVersion()
 end
 
 return Updater
-

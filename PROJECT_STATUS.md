@@ -13,7 +13,7 @@
 ## 2. 当前仓库状态
 
 - Git：已在项目根目录初始化，默认分支为 `main`，并已建立 v0.1 首次基线提交。
-- 当前插件版本：v0.2.1 开发测试版；v0.1 保留为已提交的可回退基线。
+- 当前插件版本：v0.2.2 开发测试版；v0.1 保留为已提交的可回退基线。
 - 插件源码目录：`koobone.koplugin/`。
 - v0.1 发布归档：`koobone-koreader-plugin-v0.1.zip`，作为本地历史产物保留，不纳入 Git。
 - 原始研究记录：`koobone-koreader-codex-context/KOOBONE_KOReader_Project_Handoff.md`。
@@ -485,6 +485,20 @@ v0.2.1 已完成：
 - 匿名线上核对过程只记录 Cookie 名称，不记录任何 Cookie 值，也未发送账号密码。
 - 已生成可安装测试包 `koobone-koreader-plugin-v0.2.1.zip`，压缩包完整性和顶层 `koobone.koplugin/` 目录结构检查通过。
 
+### 9.9 v0.2.2 书架刷新崩溃修复
+
+第二轮 Kindle 真机测试确认登录已能继续，但刷新书架会退出 KOReader。`crash.log` 堆栈定位到 `storage.lua` 的 `.part` 文件大小检查，不是内存不足：当临时文件不存在时，KOReader 的 `lfs.attributes(path, "size")` 返回 `nil, error_string`；旧代码将多返回值直接传给 `tonumber`，导致错误字符串被误当作数字进制参数并抛出异常。
+
+v0.2.2 已完成：
+
+- 先单独接收 `lfs.attributes` 的第一个返回值，再传入 `tonumber`；不存在 `.part` 文件时稳定返回 0 字节。
+- 修正在线更新包大小验证中的同类 Lua 多返回值隐患。
+- 在书架网络刷新和菜单生成外层增加异常保护，后续兼容问题应显示错误信息，而不是退出 KOReader。
+- 新增存储回归测试，覆盖 `.part` 不存在和正常返回大小两种情况。
+- 新增书架回归测试，验证条目渲染异常会被界面捕获。
+- 用户提供的日志截图未写入仓库；检查时未发现账号、Cookie 或签名 URL。
+- 已生成 `koobone-koreader-plugin-v0.2.2.zip`，压缩包完整性和插件顶层目录结构检查通过。
+
 ## 10. 安全与隐私规则
 
 1. 不在源码、文档或提交历史中记录真实邮箱、密码、授权码、Cookie、`sess_key` 或 API Key。
@@ -547,7 +561,7 @@ v0.2.1 已完成：
 
 ## 12. 下一步
 
-下一步应将 `koobone-koreader-plugin-v0.2.1.zip` 安装到 Kindle，先复测登录，再继续检查设置迁移、会话恢复、书架、较小 EPUB 下载进度、取消后的 `.part`、退出账号和设置页面。
+下一步应将 `koobone-koreader-plugin-v0.2.2.zip` 安装到 Kindle，先复测书架刷新，再继续检查设置迁移、会话恢复、较小 EPUB 下载进度、取消后的 `.part`、退出账号和设置页面。
 
 真机验证前应备份 Kindle 中现有 `koobone.koplugin` 和 `settings/koobone.lua`。测试日志不得包含密码、Cookie 或完整签名下载地址。基础闭环验证通过后，再处理发现的兼容问题并决定是否实现封面网格、Range 续传和后台 worker。
 
@@ -573,15 +587,17 @@ v0.2.1 已完成：
 - 匿名核对当前 KOOBONE 登录入口，确认 `/login.php` 下发 `VLIBSID`，根路径 302 可作为回退；核对输出未包含 Cookie 值。
 - 完成 v0.2.1 登录兼容修复和认证 API 回归测试。
 - 认证 API、插件加载和更新提醒策略三组测试通过；v0.2.1 ZIP 完整性检查通过。
+- 收到第二轮 Kindle 日志，确认书架退出由 `storage.lua` 对 `lfs.attributes` 多返回值处理错误导致，不是内存不足。
+- 完成 v0.2.2 `.part` 大小检查、更新包大小检查和书架异常保护修复；存储、书架、认证、插件加载、更新策略五组测试通过。
 
 未解决：
 
-- v0.2.1 尚未在 Kindle/KOReader 真机复测；完整认证、书库、下载进度、Cookie 生命周期、同步下载期间取消事件和弱网表现仍需验证。
+- v0.2.2 尚未在 Kindle/KOReader 真机复测；书架刷新、下载进度、Cookie 生命周期、同步下载期间取消事件和弱网表现仍需验证。
 - 封面网格、封面缓存、书库分页、Range 续传、后台 worker 和下载队列尚未实现。
 - 在线更新需要先确定公开 GitHub 仓库与 GitHub Pages 地址，再填写严格的清单 URL 和 Release 前缀。
 
 下一步：
 
-- 安装 v0.2.1 测试 ZIP，先确认登录能够取得 `KBSKEY` 和用户资料。
-- 登录通过后继续完成书架、下载、账号与设置测试并记录结果。
+- 安装 v0.2.2 测试 ZIP，先确认书架能够正常显示并可重复刷新。
+- 书架通过后继续完成下载、账号与设置测试并记录结果。
 - 修复真机兼容问题后，再配置 GitHub 仓库和在线更新地址。

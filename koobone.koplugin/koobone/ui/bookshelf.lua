@@ -79,14 +79,26 @@ end
 function Bookshelf:refresh()
     UIManager:show(InfoMessage:new{ text = "正在刷新书架……", timeout = 1 })
     UIManager:scheduleIn(0.15, function()
-        local books, err = self.library:refresh()
+        local request_ok, books, err = pcall(function()
+            return self.library:refresh()
+        end)
+        if not request_ok then
+            UIManager:show(InfoMessage:new{
+                text = "刷新书架时发生错误：\n" .. Util.cleanMessage(books),
+            })
+            return
+        end
         if not books then
             UIManager:show(InfoMessage:new{ text = "无法加载书架：\n" .. tostring(err) })
             return
         end
-        self:show(books)
+        local render_ok, render_err = pcall(function() self:show(books) end)
+        if not render_ok then
+            UIManager:show(InfoMessage:new{
+                text = "生成书架界面时发生错误：\n" .. Util.cleanMessage(render_err),
+            })
+        end
     end)
 end
 
 return Bookshelf
-

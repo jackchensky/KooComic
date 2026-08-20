@@ -153,7 +153,7 @@ G_reader_settings = {
 }
 
 local Plugin = dofile("koobone.koplugin/main.lua")
-assert(Plugin.version == "0.2.1")
+assert(Plugin.version == "0.2.2")
 local instance = Plugin:new{
     ui = { menu = { registerToMainMenu = function() end } },
 }

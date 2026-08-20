@@ -1,5 +1,5 @@
 return {
-    version = "0.2.1",
+    version = "0.2.2",
 
     -- Configure these after the public GitHub repository is created.
     -- Empty values disable online checks safely.

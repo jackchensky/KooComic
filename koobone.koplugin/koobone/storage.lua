@@ -55,7 +55,11 @@ function Storage:isDownloaded(item)
 end
 
 function Storage:partSize(item)
-    return tonumber(lfs.attributes(self:partPath(item), "size")) or 0
+    -- lfs.attributes returns nil plus an error string when the file is absent.
+    -- Store only its first return value so tonumber never receives that error
+    -- string as the optional numeric-base argument.
+    local size = lfs.attributes(self:partPath(item), "size")
+    return tonumber(size) or 0
 end
 
 function Storage:record(item, state, extra)
@@ -86,4 +90,3 @@ function Storage:records()
 end
 
 return Storage
-
