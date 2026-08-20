@@ -1,4 +1,4 @@
--- KOOBONE for KOReader v0.2
+-- KOOBONE for KOReader v0.3
 --
 -- The plugin only accesses the library of the account that signs in. Network
 -- logs must never contain passwords, session cookies, or signed download URLs.
@@ -13,6 +13,7 @@ local AccountUI = require("koobone.ui.account")
 local Api = require("koobone.api")
 local Auth = require("koobone.auth")
 local Bookshelf = require("koobone.ui.bookshelf")
+local CoverCache = require("koobone.cover_cache")
 local Downloader = require("koobone.downloader")
 local DownloadsUI = require("koobone.ui.downloads")
 local Library = require("koobone.library")
@@ -37,6 +38,7 @@ function Koobone:init()
     self.api = Api:new(self.settings)
     self.auth = Auth:new(self.settings, self.api)
     self.storage = Storage:new(self.settings)
+    self.cover_cache = CoverCache:new(self.api)
     self.library = Library:new(self.api, self.storage)
     self.downloader = Downloader:new{
         api = self.api,
@@ -64,6 +66,7 @@ function Koobone:init()
         storage = self.storage,
         downloader = self.downloader,
         settings = self.settings,
+        cover_cache = self.cover_cache,
         on_downloads = function() self:showDownloads() end,
         on_account = function() self:showAccount() end,
         on_settings = function() self:showSettings() end,

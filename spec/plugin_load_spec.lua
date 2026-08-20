@@ -29,6 +29,12 @@ local noop_widget_modules = {
     "ui/widget/container/inputcontainer",
     "ui/widget/progresswidget",
     "ui/widget/textboxwidget",
+    "ui/widget/textwidget",
+    "ui/widget/widget",
+    "ui/widget/imagewidget",
+    "ui/widget/horizontalgroup",
+    "ui/widget/horizontalspan",
+    "ui/widget/overlapgroup",
     "ui/widget/verticalgroup",
     "ui/widget/verticalspan",
 }
@@ -36,6 +42,7 @@ for _, name in ipairs(noop_widget_modules) do
     package.preload[name] = function() return Widget end
 end
 package.preload["ui/widget/container/widgetcontainer"] = function() return Widget end
+package.preload["ui/gesturerange"] = function() return Widget end
 
 package.preload["datastorage"] = function()
     return {
@@ -153,7 +160,7 @@ G_reader_settings = {
 }
 
 local Plugin = dofile("koobone.koplugin/main.lua")
-assert(Plugin.version == "0.2.2")
+assert(Plugin.version == "0.3.0")
 local instance = Plugin:new{
     ui = { menu = { registerToMainMenu = function() end } },
 }

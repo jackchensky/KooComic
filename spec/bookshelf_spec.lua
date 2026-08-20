@@ -10,8 +10,10 @@ end
 package.preload["socket"] = function()
     return { gettime = function() return os.time() end }
 end
+package.preload["ui/widget/buttondialog"] = widget
 package.preload["ui/widget/infomessage"] = widget
 package.preload["ui/widget/menu"] = widget
+package.preload["ui/widget/multiinputdialog"] = widget
 package.preload["ui/uimanager"] = function()
     return {
         show = function(_, value) shown[#shown + 1] = value end,
