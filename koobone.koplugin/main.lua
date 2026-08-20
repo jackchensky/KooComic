@@ -1,486 +1,192 @@
--- KOOBONE experimental KOReader plugin v0.1
--- Based on KOReader's public plugin APIs and the KOOBONE web requests
--- observed by the user in Chrome DevTools.
+-- KOOBONE for KOReader v0.2
 --
--- Security:
--- * This plugin does NOT store your password.
--- * It stores only session cookies (VLIBSID/KBSKEY) in KOReader settings.
--- * Use only on your own KOOBONE account.
---
--- Experimental: endpoint behaviour may change.
+-- The plugin only accesses the library of the account that signs in. Network
+-- logs must never contain passwords, session cookies, or signed download URLs.
 
-local ButtonDialog = require("ui/widget/buttondialog")
-local ConfirmBox = require("ui/widget/confirmbox")
 local DataStorage = require("datastorage")
 local InfoMessage = require("ui/widget/infomessage")
-local JSON = require("json")
-local LuaSettings = require("luasettings")
-local MultiInputDialog = require("ui/widget/multiinputdialog")
 local NetworkMgr = require("ui/network/manager")
-local ReaderUI = require("apps/reader/readerui")
 local UIManager = require("ui/uimanager")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
-local ffiUtil = require("ffi/util")
-local http = require("socket.http")
-local lfs = require("libs/libkoreader-lfs")
-local ltn12 = require("ltn12")
-local socket = require("socket")
-local socketutil = require("socketutil")
-local _ = require("gettext")
+
+local AccountUI = require("koobone.ui.account")
+local Api = require("koobone.api")
+local Auth = require("koobone.auth")
+local Bookshelf = require("koobone.ui.bookshelf")
+local Downloader = require("koobone.downloader")
+local DownloadsUI = require("koobone.ui.downloads")
+local Library = require("koobone.library")
+local LoginDialog = require("koobone.ui.login_dialog")
+local PluginVersion = require("koobone.plugin_version")
+local Settings = require("koobone.settings")
+local SettingsUI = require("koobone.ui.settings")
+local Storage = require("koobone.storage")
+local Updater = require("koobone.updater")
+local UpdaterUI = require("koobone.ui.updater")
 
 local Koobone = WidgetContainer:extend{
     name = "koobone",
     is_doc_only = false,
+    version = PluginVersion.version,
     settings_file = DataStorage:getSettingsDir() .. "/koobone.lua",
 }
 
-local BASE = "https://bookof.hk"
-local WEB_VERSION = "7"
-local API_VERSION = "KOOBONE/5.0.0"
-
-local function trim(s)
-    return (s or ""):gsub("^%s+", ""):gsub("%s+$", "")
-end
-
-local function cookie_value(set_cookie, name)
-    if not set_cookie then return nil end
-    if type(set_cookie) == "table" then
-        for _, v in pairs(set_cookie) do
-            local found = cookie_value(v, name)
-            if found then return found end
-        end
-        return nil
-    end
-    return tostring(set_cookie):match(name .. "=([^;,%s]+)")
-end
-
-local function safe_filename(name)
-    name = trim(name)
-    name = name:gsub("[/\\:*?\"<>|]", "_")
-    name = name:gsub("%s+$", "")
-    if name == "" then name = "KOOBONE" end
-    return name
-end
-
-local function mb(bytes)
-    return string.format("%.1f MB", (tonumber(bytes) or 0) / 1024 / 1024)
-end
-
-function Koobone:loadSettings()
-    if not Koobone.settings then
-        Koobone.settings = LuaSettings:open(self.settings_file)
-    end
-    self.cfg = Koobone.settings:readSetting("settings", {
-        email = "",
-        vlibsid = nil,
-        kbskey = nil,
-        uin = nil,
-        nick = nil,
-    })
-end
-
-function Koobone:saveSettings()
-    Koobone.settings:saveSetting("settings", self.cfg)
-    Koobone.settings:flush()
-end
-
 function Koobone:init()
-    self:loadSettings()
+    math.randomseed(os.time())
+    self.settings = Settings:new(self.settings_file)
+    self.api = Api:new(self.settings)
+    self.auth = Auth:new(self.settings, self.api)
+    self.storage = Storage:new(self.settings)
+    self.library = Library:new(self.api, self.storage)
+    self.downloader = Downloader:new{
+        api = self.api,
+        library = self.library,
+        storage = self.storage,
+        on_changed = function()
+            if self.bookshelf and self.bookshelf.menu and #self.library.items > 0 then
+                self.bookshelf:show(self.library.items)
+            end
+        end,
+    }
+    self.updater = Updater:new{
+        settings = self.settings,
+        api = self.api,
+        current_version = self.version,
+        manifest_url = PluginVersion.manifest_url,
+        release_prefix = PluginVersion.release_prefix,
+    }
+    self.updater_ui = UpdaterUI:new{
+        updater = self.updater,
+        downloader = self.downloader,
+    }
+    self.bookshelf = Bookshelf:new{
+        library = self.library,
+        storage = self.storage,
+        downloader = self.downloader,
+        settings = self.settings,
+        on_downloads = function() self:showDownloads() end,
+        on_account = function() self:showAccount() end,
+        on_settings = function() self:showSettings() end,
+    }
+
     self.ui.menu:registerToMainMenu(self)
+    self:scheduleAutomaticUpdateCheck()
+    -- Only reaching the end of initialization confirms a just-installed copy
+    -- can load and register successfully. The rollback backup survives until
+    -- this point.
+    self.updater:confirmInstalledUpdate()
 end
 
 function Koobone:addToMainMenu(menu_items)
     menu_items.koobone = {
-        text = _("KOOBONE"),
+        text = "KOOBONE",
         sorting_hint = "more_tools",
         sub_item_table = {
             {
                 text_func = function()
-                    if self.cfg.nick then
-                        return _("My library") .. " (" .. self.cfg.nick .. ")"
-                    end
-                    return _("My library")
+                    local nick = self.settings:account().nick
+                    return nick and nick ~= "" and ("我的书架（" .. nick .. "）") or "我的书架"
                 end,
-                callback = function()
-                    self:ensureOnline(function()
-                        if not self:isLoggedIn() then
-                            self:showLogin()
-                        else
-                            self:showLibrary()
-                        end
-                    end)
-                end,
+                callback = function() self:openBookshelf() end,
             },
             {
-                text_func = function()
-                    return self:isLoggedIn() and _("Re-login") or _("Login")
-                end,
-                callback = function()
-                    self:ensureOnline(function() self:showLogin() end)
-                end,
+                text = "下载管理",
+                callback = function() self:showDownloads() end,
             },
             {
-                text = _("Logout / clear session"),
-                enabled_func = function() return self:isLoggedIn() end,
-                callback = function()
-                    self.cfg.vlibsid = nil
-                    self.cfg.kbskey = nil
-                    self.cfg.uin = nil
-                    self.cfg.nick = nil
-                    self:saveSettings()
-                    UIManager:show(InfoMessage:new{ text = _("KOOBONE session cleared.") })
-                end,
+                text = "账号与登录",
+                callback = function() self:showAccount() end,
             },
             {
-                text = _("Download folder"),
+                text = "版本与设置",
+                callback = function() self:showSettings() end,
+            },
+            {
+                text = "关于 KOOBONE",
                 keep_menu_open = true,
                 callback = function()
-                    UIManager:show(InfoMessage:new{ text = self:getDownloadDir() })
+                    UIManager:show(InfoMessage:new{
+                        text = "KOOBONE for KOReader\nv" .. self.version ..
+                            "\n\n浏览个人 KOOBONE 书库、下载 EPUB 并在 KOReader 中阅读。",
+                    })
                 end,
             },
         },
     }
 end
 
-function Koobone:isLoggedIn()
-    return self.cfg.vlibsid and self.cfg.kbskey and self.cfg.uin
-end
-
-function Koobone:ensureOnline(cb)
-    NetworkMgr:runWhenOnline(cb)
-end
-
-function Koobone:headers(extra)
-    local h = {
-        ["Accept"] = "*/*",
-        ["X-KB-FROM"] = API_VERSION .. " WEB(" .. WEB_VERSION .. ") GET /web.htm",
-        ["Referer"] = BASE .. "/web.htm",
-    }
-    if self.cfg.vlibsid or self.cfg.kbskey then
-        local c = {}
-        if self.cfg.vlibsid then c[#c+1] = "VLIBSID=" .. self.cfg.vlibsid end
-        if self.cfg.kbskey then c[#c+1] = "KBSKEY=" .. self.cfg.kbskey end
-        h["Cookie"] = table.concat(c, "; ")
-    end
-    if extra then
-        for k,v in pairs(extra) do h[k] = v end
-    end
-    return h
-end
-
-function Koobone:httpRequest(req, file_path)
-    local sink = {}
-    if file_path then
-        local fh, err = io.open(file_path, "wb")
-        if not fh then return false, err end
-        req.sink = ltn12.sink.file(fh)
-        socketutil:set_timeout(30, 600)
-    else
-        req.sink = ltn12.sink.table(sink)
-        socketutil:set_timeout(20, 90)
-    end
-
-    local ok, code, headers, status = pcall(function()
-        local _, c, h, s = http.request(req)
-        return c, h, s
-    end)
-    socketutil:reset_timeout()
-
-    if not ok then
-        if file_path then os.remove(file_path) end
-        return false, tostring(code)
-    end
-
-    if tonumber(code) ~= 200 then
-        if file_path then os.remove(file_path) end
-        return false, "HTTP " .. tostring(code) .. " " .. tostring(status or "")
-    end
-
-    if file_path then
-        return true, file_path, headers
-    end
-    return true, table.concat(sink), headers
-end
-
-function Koobone:getInitialVlibsid()
-    local req = {
-        url = BASE .. "/login.htm?goto=web.htm",
-        method = "GET",
-        headers = {
-            ["Accept"] = "*/*",
-            ["X-KB-FROM"] = API_VERSION .. " WEB(" .. WEB_VERSION .. ") GET /login.htm",
-        },
-    }
-    local ok, _, headers = self:httpRequest(req)
-    if not ok then return false, _ end
-    local sid = cookie_value(headers and (headers["set-cookie"] or headers["Set-Cookie"]), "VLIBSID")
-    if sid then
-        self.cfg.vlibsid = sid
-        self:saveSettings()
-    end
-    return true
-end
-
-local function multipart_body(fields)
-    local boundary = "----KOReaderKoobone" .. tostring(os.time())
-    local out = {}
-    for k,v in pairs(fields) do
-        out[#out+1] = "--" .. boundary .. "\r\n"
-        out[#out+1] = 'Content-Disposition: form-data; name="' .. k .. '"\r\n\r\n'
-        out[#out+1] = tostring(v) .. "\r\n"
-    end
-    out[#out+1] = "--" .. boundary .. "--\r\n"
-    return table.concat(out), boundary
-end
-
-function Koobone:doLogin(email, password)
-    email, password = trim(email), password or ""
-    if email == "" or password == "" then
-        return false, _("Email and password are required.")
-    end
-
-    if not self.cfg.vlibsid then
-        local ok, err = self:getInitialVlibsid()
-        if not ok then return false, err end
-    end
-
-    local body, boundary = multipart_body{
-        email = email,
-        passwd = password,
-        keepalive = "1",
-    }
-
-    local req = {
-        url = BASE .. "/login_do.php",
-        method = "POST",
-        source = ltn12.source.string(body),
-        headers = self:headers{
-            ["Content-Type"] = "multipart/form-data; boundary=" .. boundary,
-            ["Content-Length"] = tostring(#body),
-            ["Origin"] = BASE,
-            ["Referer"] = BASE .. "/login.php?goto=web.htm",
-            ["X-KB-FROM"] = API_VERSION .. " POST /login.php",
-        },
-    }
-
-    local ok, _, headers = self:httpRequest(req)
-    if not ok then return false, _ end
-
-    local key = cookie_value(headers and (headers["set-cookie"] or headers["Set-Cookie"]), "KBSKEY")
-    if not key then
-        return false, _("Login did not return KBSKEY.")
-    end
-
-    self.cfg.email = email
-    self.cfg.kbskey = key
-
-    local info_ok, info = self:getUserInfo()
-    if not info_ok then
-        self.cfg.kbskey = nil
-        return false, info
-    end
-
-    self.cfg.uin = tonumber(info.uin)
-    self.cfg.nick = info.nick
-    self:saveSettings()
-    return true
-end
-
-function Koobone:getUserInfo()
-    local req = {
-        url = BASE .. "/uinfo.php?v=web&ver=" .. WEB_VERSION,
-        method = "GET",
-        headers = self:headers(),
-    }
-    local ok, body = self:httpRequest(req)
-    if not ok then return false, body end
-    local j_ok, data = pcall(JSON.decode, body)
-    if not j_ok or type(data) ~= "table" or not data.uin then
-        return false, _("Invalid user-info response.")
-    end
-    return true, data
-end
-
-function Koobone:getLibrary()
-    if not self.cfg.uin then return false, _("Not logged in.") end
-    local url = string.format(
-        "%s/vol_list.php?u=%s&by=time&limit=28",
-        BASE, tostring(self.cfg.uin)
-    )
-    local req = { url = url, method = "GET", headers = self:headers() }
-    local ok, body = self:httpRequest(req)
-    if not ok then return false, body end
-    local j_ok, data = pcall(JSON.decode, body)
-    if not j_ok or type(data) ~= "table" or type(data.data) ~= "table" then
-        return false, _("Invalid library response.")
-    end
-    return true, data
+function Koobone:ensureOnline(callback)
+    NetworkMgr:runWhenOnline(callback)
 end
 
 function Koobone:showLogin()
-    local dlg
-    dlg = MultiInputDialog:new{
-        title = _("KOOBONE login"),
-        fields = {
-            {
-                text = self.cfg.email or "",
-                hint = _("Email"),
-            },
-            {
-                text = "",
-                hint = _("Password"),
-                text_type = "password",
-            },
-        },
-        buttons = {
-            {
-                {
-                    text = _("Cancel"),
-                    id = "close",
-                    callback = function() UIManager:close(dlg) end,
-                },
-                {
-                    text = _("Login"),
-                    is_enter_default = true,
-                    callback = function()
-                        local fields = dlg:getFields()
-                        local email = fields[1]
-                        local password = fields[2]
-                        UIManager:close(dlg)
-                        UIManager:show(InfoMessage:new{ text = _("Logging in…"), timeout = 1 })
-                        local ok, err = self:doLogin(email, password)
-                        if ok then
-                            UIManager:show(InfoMessage:new{ text = _("Logged in to KOOBONE.") })
-                            self:showLibrary()
-                        else
-                            UIManager:show(InfoMessage:new{ text = _("Login failed: ") .. tostring(err) })
-                        end
-                    end,
-                },
-            },
-        },
-    }
-    UIManager:show(dlg)
-    dlg:onShowKeyboard()
-end
-
-function Koobone:showLibrary()
-    local ok, lib = self:getLibrary()
-    if not ok then
-        UIManager:show(InfoMessage:new{ text = _("Unable to load KOOBONE library: ") .. tostring(lib) })
-        return
-    end
-
-    local buttons = {}
-    for _, item in ipairs(lib.data) do
-        local title = item.vol_name or item.vol_series or item.file_md5 or _("Untitled")
-        local author = item.vol_author or ""
-        local info = string.format("%s\n%s · %s · %s/%s",
-            title,
-            author,
-            mb(item.file_size),
-            tostring(item.last_readpage or 0),
-            tostring(item.count_page or "?")
-        )
-        buttons[#buttons+1] = {
-            {
-                text = info,
-                callback = function()
-                    if self.library_dialog then
-                        UIManager:close(self.library_dialog)
-                        self.library_dialog = nil
-                    end
-                    self:downloadItem(item)
-                end,
-            },
+    self:ensureOnline(function()
+        LoginDialog.show{
+            auth = self.auth,
+            settings = self.settings,
+            on_success = function() self.bookshelf:refresh() end,
         }
-    end
-
-    if #buttons == 0 then
-        UIManager:show(InfoMessage:new{ text = _("Your KOOBONE library is empty.") })
-        return
-    end
-
-    buttons[#buttons+1] = {
-        {
-            text = _("Close"),
-            callback = function()
-                if self.library_dialog then
-                    UIManager:close(self.library_dialog)
-                    self.library_dialog = nil
-                end
-            end,
-        },
-    }
-
-    self.library_dialog = ButtonDialog:new{
-        title = _("KOOBONE library"),
-        buttons = buttons,
-    }
-    UIManager:show(self.library_dialog)
+    end)
 end
 
-function Koobone:getDownloadDir()
-    local home = G_reader_settings:readSetting("home_dir")
-    if not home or home == "" then
-        -- Kindle and most KOReader ports expose the user-visible storage
-        -- as the parent directory of the KOReader data folder.
-        local full = DataStorage:getFullDataDir() or DataStorage:getDataDir()
-        home = ffiUtil.dirname(full)
-    end
-    local dir = ffiUtil.joinPath(home, "KOOBONE")
-    if lfs.attributes(dir, "mode") ~= "directory" then
-        lfs.mkdir(dir)
-    end
-    return dir
+function Koobone:openBookshelf()
+    self:ensureOnline(function()
+        UIManager:show(InfoMessage:new{ text = "正在验证登录状态……", timeout = 1 })
+        UIManager:scheduleIn(0.15, function()
+            local ok, err, needs_login = self.auth:restore()
+            if ok then
+                self.bookshelf:refresh()
+            elseif needs_login then
+                self:showLogin()
+            else
+                UIManager:show(InfoMessage:new{
+                    text = "暂时无法验证登录状态，已保留当前会话：\n" .. tostring(err),
+                })
+            end
+        end)
+    end)
 end
 
-function Koobone:downloadItem(item)
-    if not item.file_url or item.file_url == "" then
-        UIManager:show(InfoMessage:new{ text = _("This item has no download URL.") })
-        return
-    end
+-- Conventional entry point used by SimpleUI/ZenUI style launchers.
+function Koobone:launch()
+    return self:openBookshelf()
+end
 
-    local ext = item.file_type or "epub"
-    local title = safe_filename(item.vol_name or item.vol_series or item.file_md5 or "KOOBONE")
-    local path = ffiUtil.joinPath(self:getDownloadDir(), title .. "." .. ext)
-
-    if lfs.attributes(path, "mode") == "file" then
-        UIManager:show(ConfirmBox:new{
-            text = _("File already exists. Open it?"),
-            ok_text = _("Open"),
-            ok_callback = function() ReaderUI:showReader(path) end,
-        })
-        return
-    end
-
-    UIManager:show(InfoMessage:new{
-        text = _("Downloading may take several minutes…"),
-        timeout = 2,
-    })
-    UIManager:forceRePaint()
-
-    local req = {
-        url = item.file_url,
-        method = "GET",
-        headers = {
-            ["Accept"] = "*/*",
-            ["X-KB-FROM"] = API_VERSION .. " WEB(" .. WEB_VERSION .. ") FETCH /web.htm",
-            ["Referer"] = BASE .. "/",
-        },
+function Koobone:showAccount()
+    AccountUI.show{
+        settings = self.settings,
+        auth = self.auth,
+        on_login = function() self:showLogin() end,
+        on_logout = function()
+            if self.bookshelf and self.bookshelf.menu then
+                UIManager:close(self.bookshelf.menu)
+                self.bookshelf.menu = nil
+            end
+        end,
+        on_settings = function() self:showSettings() end,
     }
-    local ok, result = self:httpRequest(req, path)
-    if not ok then
-        UIManager:show(InfoMessage:new{ text = _("Download failed: ") .. tostring(result) })
-        return
-    end
+end
 
-    UIManager:show(ConfirmBox:new{
-        text = _("Download complete:\n") .. path,
-        ok_text = _("Open"),
-        cancel_text = _("Later"),
-        ok_callback = function() ReaderUI:showReader(path) end,
-    })
+function Koobone:showDownloads()
+    DownloadsUI.show(self.storage, self.downloader)
+end
+
+function Koobone:showSettings()
+    SettingsUI.show{
+        settings = self.settings,
+        updater = self.updater,
+        updater_ui = self.updater_ui,
+        storage = self.storage,
+        version = self.version,
+    }
+end
+
+function Koobone:scheduleAutomaticUpdateCheck()
+    UIManager:scheduleIn(5, function()
+        if self.updater:shouldAutoCheck() and NetworkMgr:isConnected() then
+            self.updater_ui:check(false)
+        end
+    end)
 end
 
 return Koobone

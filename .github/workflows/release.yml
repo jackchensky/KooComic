@@ -1,0 +1,68 @@
+name: Release KOOBONE plugin
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "koobone-release-${{ github.ref }}"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.value }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Read tag version
+        id: version
+        shell: bash
+        run: echo "value=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Check repository for sensitive runtime files
+        shell: bash
+        run: |
+          if find koobone.koplugin -type f \( -name '*.log' -o -name '*.part' -o -name '*.epub' -o -name 'koobone.lua' \) | grep -q .; then
+            echo "Runtime or sensitive files found inside plugin package" >&2
+            exit 1
+          fi
+
+      - name: Build release package and update manifest
+        run: ./scripts/package_release.sh "${{ steps.version.outputs.value }}" "$GITHUB_REPOSITORY" dist
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            dist/release/koobone.koplugin-v${{ steps.version.outputs.value }}.zip \
+            dist/release/koobone.koplugin-v${{ steps.version.outputs.value }}.zip.sha256 \
+            dist/release/update.json \
+            --verify-tag \
+            --generate-notes \
+            --title "KOOBONE v${{ steps.version.outputs.value }}"
+
+      - name: Upload fixed update manifest for GitHub Pages
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist/pages
+
+  deploy-manifest:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish update.json
+        id: deployment
+        uses: actions/deploy-pages@v5
