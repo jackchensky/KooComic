@@ -1,0 +1,16 @@
+.DS_Store
+
+# 本地交接资料可能包含未脱敏截图，只保留在工作目录，不提交到 Git。
+koobone-koreader-codex-context/images/
+KOOBONE_KOReader_Codex_Project_Context.zip
+koobone-koreader-plugin-*.zip
+
+# 运行时数据和敏感信息。
+*.log
+*.part
+*.tmp
+*.backup
+settings/
+cache/
+downloads/
+
