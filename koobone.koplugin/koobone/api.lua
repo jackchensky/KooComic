@@ -83,20 +83,46 @@ function Api:requestJson(options)
 end
 
 function Api:getInitialSession()
-    local response, err = self:requestOk{
-        url = self.BASE .. "/login.htm?goto=web.htm",
-        method = "GET",
-        include_session = false,
-        headers = self:headers({
-            ["X-KB-FROM"] = self.CLIENT_VERSION .. " WEB(" .. self.WEB_VERSION .. ") GET /login.htm",
-        }, false),
+    -- /login.htm is only the static login page and currently does not create
+    -- a session. /login.php does; the site root is retained as a fallback
+    -- because it also creates VLIBSID before redirecting to /login.htm.
+    local attempts = {
+        {
+            path = "/login.php?goto=web.htm",
+            from = "GET /login.php",
+        },
+        {
+            path = "/",
+            from = "GET /",
+        },
     }
-    if not response then return nil, err end
-    local sid = Util.cookieValue(Util.header(response.headers, "set-cookie"), "VLIBSID")
-    if not sid then return nil, "登录页面没有返回 VLIBSID" end
-    self.settings:account().vlibsid = sid
-    self.settings:flush()
-    return true
+    local last_error
+    for _, attempt in ipairs(attempts) do
+        local response, err = self:request{
+            url = self.BASE .. attempt.path,
+            method = "GET",
+            include_session = false,
+            headers = self:headers({
+                ["X-KB-FROM"] = self.CLIENT_VERSION .. " WEB(" ..
+                    self.WEB_VERSION .. ") " .. attempt.from,
+            }, false),
+        }
+        if response and (response.code == 200 or response.code == 302) then
+            local sid = Util.cookieValue(
+                Util.header(response.headers, "set-cookie"), "VLIBSID")
+            if sid then
+                self.settings:account().vlibsid = sid
+                self.settings:flush()
+                return true
+            end
+            last_error = "初始化页面没有返回 VLIBSID"
+        elseif response then
+            last_error = "初始化登录会话失败：HTTP " .. tostring(response.code)
+        else
+            last_error = err
+        end
+    end
+    return nil, last_error or "无法初始化登录会话"
 end
 
 local function multipart(fields)
@@ -136,8 +162,11 @@ function Api:login(email, password)
     }
     body = nil
     if not response then return nil, err end
-    local key = Util.cookieValue(Util.header(response.headers, "set-cookie"), "KBSKEY")
+    local set_cookie = Util.header(response.headers, "set-cookie")
+    local key = Util.cookieValue(set_cookie, "KBSKEY")
     if not key then return nil, "登录成功响应中没有 KBSKEY" end
+    local refreshed_sid = Util.cookieValue(set_cookie, "VLIBSID")
+    if refreshed_sid then account.vlibsid = refreshed_sid end
     account.kbskey = key
     self.settings:flush()
     return true

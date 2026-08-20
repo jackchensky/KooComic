@@ -13,7 +13,7 @@
 ## 2. 当前仓库状态
 
 - Git：已在项目根目录初始化，默认分支为 `main`，并已建立 v0.1 首次基线提交。
-- 当前插件版本：v0.2.0 开发测试版；v0.1 保留为已提交的可回退基线。
+- 当前插件版本：v0.2.1 开发测试版；v0.1 保留为已提交的可回退基线。
 - 插件源码目录：`koobone.koplugin/`。
 - v0.1 发布归档：`koobone-koreader-plugin-v0.1.zip`，作为本地历史产物保留，不纳入 Git。
 - 原始研究记录：`koobone-koreader-codex-context/KOOBONE_KOReader_Project_Handoff.md`。
@@ -84,7 +84,7 @@ koobone.koplugin/
 
 ### 4.1 初始化会话
 
-登录前访问 KOOBONE 登录页面，取得或复用 `VLIBSID`。仍需在完全干净的 Cookie 环境中进一步确认 `VLIBSID` 最稳定的初始来源。
+登录前访问 KOOBONE 动态登录入口，取得或复用 `VLIBSID`。2026-08-20 的匿名请求验证结果为：`/login.htm` 只返回静态登录页且不下发 Cookie；`/login.php?goto=web.htm` 返回 `VLIBSID`；站点根路径的 302 响应也会返回 `VLIBSID`。v0.2.1 因此优先使用 `/login.php` 初始化会话，并以根路径作为兼容回退。
 
 ### 4.2 提交登录
 
@@ -472,6 +472,19 @@ last_seen_update_version
 - 取消逻辑会在下一个网络数据块到达时终止写入，但不同 Kindle/KOReader 版本是否能在同步网络请求期间及时派发触摸事件仍需真机确认。
 - 没有加入安装统计、设备型号上报或其他遥测。
 
+### 9.8 v0.2.1 登录兼容修复
+
+第一轮 Kindle 真机登录显示“登录页面没有返回 VLIBSID”。定位结果不是账号密码错误，而是 v0.2.0 请求了静态入口 `/login.htm?goto=web.htm`，并错误地要求该响应必须下发 `VLIBSID`；当前站点实际从 `/login.php?goto=web.htm` 或站点根路径下发初始会话 Cookie。
+
+v0.2.1 已完成：
+
+- 初始化会话改为优先请求 `/login.php?goto=web.htm`。
+- 若动态登录入口未返回 `VLIBSID`，回退请求站点根路径，并接受其携带 Cookie 的 302 响应。
+- 登录成功响应若轮换 `VLIBSID`，与 `KBSKEY` 一并保存。
+- 新增认证 API 回归测试，覆盖动态入口、根路径回退、多值 `Set-Cookie` 和会话 Cookie 轮换。
+- 匿名线上核对过程只记录 Cookie 名称，不记录任何 Cookie 值，也未发送账号密码。
+- 已生成可安装测试包 `koobone-koreader-plugin-v0.2.1.zip`，压缩包完整性和顶层 `koobone.koplugin/` 目录结构检查通过。
+
 ## 10. 安全与隐私规则
 
 1. 不在源码、文档或提交历史中记录真实邮箱、密码、授权码、Cookie、`sess_key` 或 API Key。
@@ -534,7 +547,7 @@ last_seen_update_version
 
 ## 12. 下一步
 
-下一步应将 `koobone-koreader-plugin-v0.2.0.zip` 安装到 Kindle 做第一轮真机验证，重点检查插件加载、v0.1 设置迁移、HTTPS 登录、Cookie 失效恢复、书架、较小 EPUB 下载进度、取消后的 `.part`、退出账号和设置页面。
+下一步应将 `koobone-koreader-plugin-v0.2.1.zip` 安装到 Kindle，先复测登录，再继续检查设置迁移、会话恢复、书架、较小 EPUB 下载进度、取消后的 `.part`、退出账号和设置页面。
 
 真机验证前应备份 Kindle 中现有 `koobone.koplugin` 和 `settings/koobone.lua`。测试日志不得包含密码、Cookie 或完整签名下载地址。基础闭环验证通过后，再处理发现的兼容问题并决定是否实现封面网格、Range 续传和后台 worker。
 
@@ -556,15 +569,19 @@ last_seen_update_version
 - 增加发布脚本、GitHub Release/Pages 工作流和更新提醒状态测试。
 - Lua 语法解析、KOReader 接口桩主入口加载、更新策略测试、ZIP 打包、ZIP 完整性、SHA-256、工作流 YAML 与敏感运行文件扫描均通过。
 - 按决定不加入安装数、设备型号或匿名遥测统计。
+- 收到第一轮 Kindle 真机反馈：插件能够进入登录流程，但 v0.2.0 因静态 `/login.htm` 不下发 `VLIBSID` 而在提交认证前中断。
+- 匿名核对当前 KOOBONE 登录入口，确认 `/login.php` 下发 `VLIBSID`，根路径 302 可作为回退；核对输出未包含 Cookie 值。
+- 完成 v0.2.1 登录兼容修复和认证 API 回归测试。
+- 认证 API、插件加载和更新提醒策略三组测试通过；v0.2.1 ZIP 完整性检查通过。
 
 未解决：
 
-- v0.2.0 尚未在 Kindle/KOReader 真机加载，HTTPS、Cookie 生命周期、同步下载期间取消事件和弱网表现仍需验证。
+- v0.2.1 尚未在 Kindle/KOReader 真机复测；完整认证、书库、下载进度、Cookie 生命周期、同步下载期间取消事件和弱网表现仍需验证。
 - 封面网格、封面缓存、书库分页、Range 续传、后台 worker 和下载队列尚未实现。
 - 在线更新需要先确定公开 GitHub 仓库与 GitHub Pages 地址，再填写严格的清单 URL 和 Release 前缀。
 
 下一步：
 
-- 备份 Kindle 现有插件和设置，安装 v0.2.0 测试 ZIP。
-- 完成第一轮真机加载、登录、书架、下载、账号与设置测试并记录结果。
+- 安装 v0.2.1 测试 ZIP，先确认登录能够取得 `KBSKEY` 和用户资料。
+- 登录通过后继续完成书架、下载、账号与设置测试并记录结果。
 - 修复真机兼容问题后，再配置 GitHub 仓库和在线更新地址。
