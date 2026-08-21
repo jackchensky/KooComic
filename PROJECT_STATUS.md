@@ -13,7 +13,7 @@
 ## 2. 当前仓库状态
 
 - Git：已在项目根目录初始化，默认分支为 `main`，并已建立 v0.1 首次基线提交。
-- 当前插件版本：v0.4.0 开发测试版；v0.1 保留为已提交的可回退基线。
+- 当前公开版本：v0.4.0；已发布到 GitHub，仍待 Kindle/KOReader 真机验收。v0.1 保留为已提交的可回退基线。
 - 插件名称：`koo漫画`；这是连接 KOOBONE 个人漫画书库的非官方 KOReader 插件。
 - 插件源码目录：`koocomic.koplugin/`。
 - v0.1 发布归档：`koobone-koreader-plugin-v0.1.zip`，作为本地历史产物保留，不纳入 Git。
@@ -687,12 +687,15 @@ v0.4.0 将插件从直接使用第三方应用名的 `KOOBONE for KOReader` 更�
 - 增加自适应尺寸模块、横竖屏行列设置、三档文字大小、旋转重排、详情/账号信息面板和横竖屏下载弹窗。
 - 八组回归测试、Lua 5.1 语法解析、发布打包、ZIP 完整性和敏感运行文件扫描通过。
 - 生成 `dist-v0.4.0/release/koocomic.koplugin-v0.4.0.zip`，SHA-256 为 `64042f4cab7ba8b6cdebd35e9644eef47d737876bec24abdb2a17e128dc54b20`。
+- 建立公开仓库 `https://github.com/jackchensky/KooComic`，将未发布历史与后续提交统一改用 GitHub noreply 邮箱，未提交本地插件备份目录或运行数据。
+- 发布 GitHub Release `v0.4.0`，附件包括完整插件 ZIP、SHA-256 文件与版本清单；在线发布包 SHA-256 为 `5141565e01a28fb464372846eafe0b31a6627dfd64c944f1944c350bad3ab438`。
+- 启用 GitHub Pages Actions 发布，允许 `v*.*.*` 正式标签部署；已从 `https://jackchensky.github.io/KooComic/update.json` 读取并验证 v0.4.0 清单、下载地址、文件大小和 SHA-256。
 
 未解决：
 
 - v0.4.0 需要在实际 Kindle/KOReader 上确认旧设置迁移、一级菜单、自适应网格、字体、触控区域、弹窗尺寸以及 CDN 下载表现。
 - Range 断点续传尚未实现，因此保留的 `.part` 目前只用于避免损坏文件冒充完整 EPUB，不用于续传。
-- GitHub 公开仓库确定为 `https://github.com/jackchensky/KooComic`；插件展示名仍为“koo漫画”。在线更新清单使用 `https://jackchensky.github.io/KooComic/update.json`，正式启用仍需完成首次 GitHub Release 和 Pages 部署验证。
+- GitHub 仓库、Release 与 Pages 在线更新链路已经启用；插件内的自动安装流程仍需在真实 Kindle 上完成首次端到端验证。
 
 下一步：
 
