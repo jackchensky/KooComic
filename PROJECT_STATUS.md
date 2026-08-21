@@ -690,12 +690,16 @@ v0.4.0 将插件从直接使用第三方应用名的 `KOOBONE for KOReader` 更�
 - 建立公开仓库 `https://github.com/jackchensky/KooComic`，将未发布历史与后续提交统一改用 GitHub noreply 邮箱，未提交本地插件备份目录或运行数据。
 - 发布 GitHub Release `v0.4.0`，附件包括完整插件 ZIP、SHA-256 文件与版本清单；在线发布包 SHA-256 为 `5141565e01a28fb464372846eafe0b31a6627dfd64c944f1944c350bad3ab438`。
 - 启用 GitHub Pages Actions 发布，允许 `v*.*.*` 正式标签部署；已从 `https://jackchensky.github.io/KooComic/update.json` 读取并验证 v0.4.0 清单、下载地址、文件大小和 SHA-256。
+- 为 GitHub 仓库添加 `koreader-plugin`、`koreader`、`kindle`、`comic-reader`、`lua` 和 `koobone` Topics，并将仓库简介补充为同时包含“koo漫画”、`KooComic`、KOOBONE、Kindle 和 KOReader 的可搜索说明。
+- 已使用 Storefront 的 `topic:koreader-plugin` 同等 GitHub 查询确认 `jackchensky/KooComic` 可以被 Direct GitHub API 目录发现；默认静态目录仍需等待 Storefront 维护者下一次重建目录。
+- 再次检查 GitHub v0.4.0 实际发布 ZIP，确认其中已包含固定更新清单地址和 Release 前缀；服务器端更新清单链路可用，插件端安装流程仍待 Kindle 真机端到端验证。
 
 未解决：
 
 - v0.4.0 需要在实际 Kindle/KOReader 上确认旧设置迁移、一级菜单、自适应网格、字体、触控区域、弹窗尺寸以及 CDN 下载表现。
 - Range 断点续传尚未实现，因此保留的 `.part` 目前只用于避免损坏文件冒充完整 EPUB，不用于续传。
 - GitHub 仓库、Release 与 Pages 在线更新链路已经启用；插件内的自动安装流程仍需在真实 Kindle 上完成首次端到端验证。
+- Storefront 的默认静态目录还没有包含 KooComic；在其目录重建前，需要切换到 Direct GitHub API 目录来源并刷新后搜索。
 
 下一步：
 

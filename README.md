@@ -10,6 +10,12 @@
 
 从 v0.3.1 或更早版本升级时，只删除旧的 `plugins/koobone.koplugin` 代码目录；请保留 `settings/koobone.lua` 和原有漫画下载目录，以便迁移登录状态和本地文件。
 
+## 通过 Storefront 安装
+
+本仓库已添加 Storefront 识别所需的 `koreader-plugin` GitHub Topic。在 Storefront 中使用“Direct GitHub API”目录来源并刷新插件目录后，可搜索 `KooComic`、`KOOBONE` 或“漫画”找到本插件。
+
+Storefront 的默认静态目录需要等待其维护者下一次重建目录后才会出现新插件。无论使用 Storefront 还是手动安装，插件设置和已下载漫画都保存在插件代码目录之外，更新插件时请勿删除这些数据。
+
 详细功能、隐私和在线更新说明见 [`koocomic.koplugin/README.md`](koocomic.koplugin/README.md)。开发状态见 [`PROJECT_STATUS.md`](PROJECT_STATUS.md)。
 
 ## 许可证
