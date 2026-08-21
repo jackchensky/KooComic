@@ -686,7 +686,7 @@ v0.4.0 将插件从直接使用第三方应用名的 `KOOBONE for KOReader` 更�
 - 根据两张 Kindle 真机照片修正字号、垂直对齐、书名/作者间距和底部书架缺字；照片只在临时目录查看，没有写入仓库。
 - 增加自适应尺寸模块、横竖屏行列设置、三档文字大小、旋转重排、详情/账号信息面板和横竖屏下载弹窗。
 - 八组回归测试、Lua 5.1 语法解析、发布打包、ZIP 完整性和敏感运行文件扫描通过。
-- 生成 `dist-v0.4.0/release/koocomic.koplugin-v0.4.0.zip`，SHA-256 为 `64042f4cab7ba8b6cdebd35e9644eef47d737876bec24abdb2a17e128dc54b20`。
+- 生成并逐文件验证 `dist-v0.4.0/release/koocomic.koplugin-v0.4.0.zip`；初次本地包与 GitHub Actions 正式包的插件内容完全相同，随后已将本地 `dist` ZIP、SHA-256 和 `update.json` 同步为 GitHub 正式产物，当前 SHA-256 为 `5141565e01a28fb464372846eafe0b31a6627dfd64c944f1944c350bad3ab438`。
 - 建立公开仓库 `https://github.com/jackchensky/KooComic`，将未发布历史与后续提交统一改用 GitHub noreply 邮箱，未提交本地插件备份目录或运行数据。
 - 发布 GitHub Release `v0.4.0`，附件包括完整插件 ZIP、SHA-256 文件与版本清单；在线发布包 SHA-256 为 `5141565e01a28fb464372846eafe0b31a6627dfd64c944f1944c350bad3ab438`。
 - 启用 GitHub Pages Actions 发布，允许 `v*.*.*` 正式标签部署；已从 `https://jackchensky.github.io/KooComic/update.json` 读取并验证 v0.4.0 清单、下载地址、文件大小和 SHA-256。
