@@ -5,6 +5,8 @@ koobone-koreader-codex-context/images/
 KOOBONE_KOReader_Codex_Project_Context.zip
 koobone-koreader-plugin-*.zip
 koocomic-koreader-plugin-*.zip
+koocomic.koplugin-v*.zip
+koocomic.koplugin-v*.zip.sha256
 dist*/
 
 # 运行时数据和敏感信息。

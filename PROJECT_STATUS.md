@@ -693,6 +693,7 @@ v0.4.0 将插件从直接使用第三方应用名的 `KOOBONE for KOReader` 更�
 - 为 GitHub 仓库添加 `koreader-plugin`、`koreader`、`kindle`、`comic-reader`、`lua` 和 `koobone` Topics，并将仓库简介补充为同时包含“koo漫画”、`KooComic`、KOOBONE、Kindle 和 KOReader 的可搜索说明。
 - 已使用 Storefront 的 `topic:koreader-plugin` 同等 GitHub 查询确认 `jackchensky/KooComic` 可以被 Direct GitHub API 目录发现；默认静态目录仍需等待 Storefront 维护者下一次重建目录。
 - 再次检查 GitHub v0.4.0 实际发布 ZIP，确认其中已包含固定更新清单地址和 Release 前缀；服务器端更新清单链路可用，插件端安装流程仍待 Kindle 真机端到端验证。
+- 将 GitHub 正式发布的 `koocomic.koplugin-v0.4.0.zip` 及其 SHA-256 文件复制到项目根目录，方便直接安装；根目录副本哈希为 `5141565e01a28fb464372846eafe0b31a6627dfd64c944f1944c350bad3ab438`，ZIP 完整性检查通过，并通过 `.gitignore` 保持为本地发布产物。
 
 未解决：
 
