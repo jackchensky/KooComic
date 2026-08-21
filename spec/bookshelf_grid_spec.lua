@@ -1,4 +1,4 @@
-package.path = "./koobone.koplugin/?.lua;./koobone.koplugin/?/init.lua;" .. package.path
+package.path = "./koocomic.koplugin/?.lua;./koocomic.koplugin/?/init.lua;" .. package.path
 
 local function class()
     local object = {}
@@ -122,6 +122,15 @@ assert(view.perpage == 6)
 assert(view.pages == 5)
 assert(#view:visibleItems() == 6)
 assert(page_events[1].page == 1 and page_events[1].pages == 5)
+
+view:update{ ui = { portrait_columns = 2, portrait_rows = 2, text_size = "large" } }
+assert(view.perpage == 4)
+assert(view.pages == 7)
+assert(#view:visibleItems() == 4)
+
+view:update{ ui = { portrait_columns = 3, portrait_rows = 2, text_size = "large" } }
+assert(view.perpage == 6)
+assert(view.pages == 5)
 
 view:_changePage(5)
 assert(view.page == 5)

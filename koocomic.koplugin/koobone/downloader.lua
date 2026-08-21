@@ -52,7 +52,7 @@ function Downloader:download(item)
     self.cancelled = false
     self.storage:record(item, "preparing")
     local dialog = DownloadDialog:new{
-        title = item.vol_name or item.vol_series or "KOOBONE",
+        title = item.vol_name or item.vol_series or "koo漫画",
         on_cancel = function() self.cancelled = true end,
     }
     dialog:show()
@@ -145,4 +145,3 @@ function Downloader:download(item)
 end
 
 return Downloader
-

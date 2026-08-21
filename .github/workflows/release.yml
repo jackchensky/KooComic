@@ -1,4 +1,4 @@
-name: Release KOOBONE plugin
+name: Release koo漫画 plugin
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "koobone-release-${{ github.ref }}"
+  group: "koocomic-release-${{ github.ref }}"
   cancel-in-progress: false
 
 jobs:
@@ -31,7 +31,7 @@ jobs:
       - name: Check repository for sensitive runtime files
         shell: bash
         run: |
-          if find koobone.koplugin -type f \( -name '*.log' -o -name '*.part' -o -name '*.epub' -o -name 'koobone.lua' \) | grep -q .; then
+          if find koocomic.koplugin -type f \( -name '*.log' -o -name '*.part' -o -name '*.epub' -o -name 'koobone.lua' -o -name 'koocomic.lua' \) | grep -q .; then
             echo "Runtime or sensitive files found inside plugin package" >&2
             exit 1
           fi
@@ -44,12 +44,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
-            dist/release/koobone.koplugin-v${{ steps.version.outputs.value }}.zip \
-            dist/release/koobone.koplugin-v${{ steps.version.outputs.value }}.zip.sha256 \
+            dist/release/koocomic.koplugin-v${{ steps.version.outputs.value }}.zip \
+            dist/release/koocomic.koplugin-v${{ steps.version.outputs.value }}.zip.sha256 \
             dist/release/update.json \
             --verify-tag \
             --generate-notes \
-            --title "KOOBONE v${{ steps.version.outputs.value }}"
+            --title "koo漫画 v${{ steps.version.outputs.value }}"
 
       - name: Upload fixed update manifest for GitHub Pages
         uses: actions/upload-pages-artifact@v5

@@ -13,11 +13,12 @@ local UIManager = require("ui/uimanager")
 local VerticalGroup = require("ui/widget/verticalgroup")
 local VerticalSpan = require("ui/widget/verticalspan")
 local Util = require("koobone.util")
+local Metrics = require("koobone.ui.metrics")
 
 local Screen = Device.screen
 
 local DownloadDialog = InputContainer:extend{
-    name = "koobone_download_progress",
+    name = "koocomic_download_progress",
     covers_fullscreen = true,
     stop_events_propagation = true,
     title = "正在下载",
@@ -29,15 +30,16 @@ function DownloadDialog:init()
     self.closed = false
     self.last_draw_at = 0
 
-    local frame_width = math.floor(Screen:getWidth() * 0.84)
-    local frame_height = math.floor(Screen:getHeight() * 0.58)
+    local metric = Metrics.screen()
+    local frame_width = math.floor(metric.width * (metric.portrait and 0.90 or 0.72))
+    local frame_height = math.floor(metric.height * (metric.portrait and 0.58 or 0.72))
     local content_width = frame_width - Size.padding.large * 2
     local content_height = frame_height - Size.padding.large * 2
     local group = VerticalGroup:new{ align = "center" }
 
     self.title_widget = TextBoxWidget:new{
         text = self.title or "正在下载",
-        face = Font:getFace("ffont", 22),
+        face = Metrics.face("ffont", 22, self.text_size),
         bold = true,
         width = content_width,
         height = math.floor(content_height * 0.18),
@@ -50,7 +52,7 @@ function DownloadDialog:init()
 
     self.progress_widget = ProgressWidget:new{
         width = content_width,
-        height = Screen:scaleBySize(20),
+        height = Metrics.dp(20),
         percentage = 0,
         fillcolor = Blitbuffer.COLOR_BLACK,
         padding = Size.padding.small,
@@ -61,7 +63,7 @@ function DownloadDialog:init()
 
     self.percent_widget = TextBoxWidget:new{
         text = "0%",
-        face = Font:getFace("cfont", 19),
+        face = Metrics.face("cfont", 19, self.text_size),
         width = content_width,
         height = math.floor(content_height * 0.08),
         height_adjust = false,
@@ -72,7 +74,7 @@ function DownloadDialog:init()
 
     self.status_widget = TextBoxWidget:new{
         text = "准备下载……",
-        face = Font:getFace("cfont", 18),
+        face = Metrics.face("cfont", 17, self.text_size),
         width = content_width,
         height = math.floor(content_height * 0.35),
         height_adjust = false,

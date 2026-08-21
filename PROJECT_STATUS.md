@@ -13,8 +13,9 @@
 ## 2. 当前仓库状态
 
 - Git：已在项目根目录初始化，默认分支为 `main`，并已建立 v0.1 首次基线提交。
-- 当前插件版本：v0.3.1 开发测试版；v0.1 保留为已提交的可回退基线。
-- 插件源码目录：`koobone.koplugin/`。
+- 当前插件版本：v0.4.0 开发测试版；v0.1 保留为已提交的可回退基线。
+- 插件名称：`koo漫画`；这是连接 KOOBONE 个人漫画书库的非官方 KOReader 插件。
+- 插件源码目录：`koocomic.koplugin/`。
 - v0.1 发布归档：`koobone-koreader-plugin-v0.1.zip`，作为本地历史产物保留，不纳入 Git。
 - 原始研究记录：`koobone-koreader-codex-context/KOOBONE_KOReader_Project_Handoff.md`。
 - 原始抓包截图：保留在本地交接资料目录，但因可能含账号或会话信息，已通过 `.gitignore` 排除。
@@ -23,8 +24,10 @@
 当前插件结构：
 
 ```text
-koobone.koplugin/
+koocomic.koplugin/
 ├── _meta.lua
+├── LICENSE
+├── NOTICE
 ├── main.lua
 ├── koobone/
 │   ├── api.lua
@@ -44,11 +47,15 @@ koobone.koplugin/
 │       ├── bookshelf_grid.lua
 │       ├── download_dialog.lua
 │       ├── downloads.lua
+│       ├── info_panel.lua
 │       ├── login_dialog.lua
+│       ├── metrics.lua
 │       ├── settings.lua
 │       └── updater.lua
 └── README.md
 ```
+
+项目采用 `AGPL-3.0-only`，完整许可证位于仓库根目录和发布插件目录的 `LICENSE`；`NOTICE` 明确说明项目与 KOOBONE、Bookof.hk 及其开发者不存在隶属、赞助或官方合作关系。
 
 ## 3. v0.1 已打通的核心闭环
 
@@ -537,6 +544,29 @@ v0.3.0 Kindle 真机下载显示“下载失败，临时文件已保留：networ
 - 已生成 `koobone-koreader-plugin-v0.3.1.zip`；ZIP 完整性、顶层 `koobone.koplugin/`、双版本号和敏感运行文件排除检查通过。
 - 安装包 SHA-256：`6b2543be14b3c2b2322d0939ee6aed2f0d988a868c285746b8ffef920b3d01ea`。
 
+### 9.12 v0.4.0 “koo漫画”更名与自适应界面
+
+v0.4.0 将插件从直接使用第三方应用名的 `KOOBONE for KOReader` 更名为 `koo漫画`。KOOBONE 名称只用于说明所连接的兼容服务；关于页、README 和 `NOTICE` 均明确这是独立开发的非官方插件。
+
+已完成：
+
+- 插件发布目录改为 `koocomic.koplugin/`，KOReader 菜单名称改为“koo漫画”，版本号升级为 v0.4.0。
+- 菜单排序提示从 `more_tools` 改为 `tools`，使插件入口与 MiuRead 等插件一样注册在 KOReader 工具一级菜单，而不是“更多工具”子菜单。
+- 新设置使用 `settings/koocomic.lua`；首次启动会只读加载旧 `settings/koobone.lua` 并复制账号会话、记住密码选项、下载记录和更新偏好。迁移不会修改或删除旧设置文件。
+- 继续使用原有 `KOOBONE` 漫画下载目录，避免移动或丢失用户已经下载的 EPUB。
+- 增加按屏幕逻辑尺寸和 KOReader DPI 缩放计算的自适应指标；横竖屏切换或屏幕尺寸变化时重新构建网格。
+- 设置页增加竖屏列数（2–4）、竖屏行数（1–3）、横屏列数（2–5）、横屏行数（1–3）和标准/大/特大文字选项。
+- 放大顶部标题、副标题、搜索/排序/筛选工具栏、书名、作者和底部导航文字，重新计算固定区域高度并缩短书名与作者之间的间距。
+- 底部导航图标改为插件自行绘制的黑白几何图形，不再依赖 Kindle 字体中的特殊符号，修复选中“书架”时图标和文字缺失的问题。
+- 详情页和账号页改用自适应居中信息面板；下载进度弹窗按横竖屏采用不同宽高比例，并继续显示百分比、字节、速度、预计时间和取消操作。
+- 更新器、发布脚本、GitHub Actions、ZIP 顶层目录和 User-Agent 完成新名称适配；发布脚本同时修复相对输出目录无法生成 ZIP 的问题。
+- 项目和发布包加入完整 GNU AGPL v3 文本，许可证标识为 `AGPL-3.0-only`。
+- 新增旧设置迁移测试和可调网格测试；认证、网格、书架、封面、插件加载、设置迁移、存储、更新策略八组测试通过。
+- 已生成并验证 `dist-v0.4.0/release/koocomic.koplugin-v0.4.0.zip`，ZIP 无损检查通过，未包含日志、设置、密码、Cookie、漫画、临时文件或截图。
+- v0.4.0 测试包 SHA-256：`64042f4cab7ba8b6cdebd35e9644eef47d737876bec24abdb2a17e128dc54b20`。
+
+安装注意：v0.3.1 与 v0.4.0 的插件目录名不同。真机测试前应删除 Kindle 中旧的 `plugins/koobone.koplugin` 代码目录，再复制新的 `plugins/koocomic.koplugin`；不得删除 `settings/koobone.lua` 或原有漫画下载目录，否则无法迁移旧登录状态或会丢失本地文件。
+
 ## 10. 安全与隐私规则
 
 1. 不在源码、文档或提交历史中记录真实邮箱、密码、授权码、Cookie、`sess_key` 或 API Key。
@@ -599,9 +629,9 @@ v0.3.0 Kindle 真机下载显示“下载失败，临时文件已保留：networ
 
 ## 12. 下一步
 
-下一步应将 `koobone-koreader-plugin-v0.3.1.zip` 安装到 Kindle，优先复测 EPUB 下载与进度界面，并记录失败时显示的具体底层错误；随后继续核对三列网格尺寸、触控区域、真实封面渐进加载、搜索/排序/筛选、分页和底部导航。
+下一步应将 `dist-v0.4.0/release/koocomic.koplugin-v0.4.0.zip` 安装到 Kindle。安装前只删除旧插件代码目录 `plugins/koobone.koplugin`，保留 `settings/koobone.lua` 和漫画下载目录；启动后确认一级菜单出现“koo漫画”、旧账号状态迁移成功，再验证自适应网格、文字对齐、底部书架图标、详情/账号面板、布局设置和下载进度。
 
-真机验证前应备份 Kindle 中现有 `koobone.koplugin` 和 `settings/koobone.lua`。测试日志不得包含密码、Cookie 或完整签名下载地址。网格书架验证通过后，再处理发现的尺寸和交互问题并决定是否实现 Range 续传和后台 worker。
+真机验证前应备份 Kindle 中现有 `koobone.koplugin` 和 `settings/koobone.lua`。测试日志不得包含密码、Cookie 或完整签名下载地址。v0.4.0 的改名迁移与界面验证通过后，再配置公开 GitHub 仓库和在线更新地址，并决定是否实现 Range 续传和后台 worker。
 
 ## 13. 维护日志
 
@@ -651,13 +681,21 @@ v0.3.0 Kindle 真机下载显示“下载失败，临时文件已保留：networ
 - 对照 v0.1 已验证下载方式和 KOReader 官方 `socketutil`、OTA 下载实现，确认 HTTPS URL 应通过 `socket.http.request` 的自动 TLS 兼容路径处理。
 - 完成 v0.3.1 网络入口和底层错误保留修复，七组回归测试通过。
 - 生成并验证 `koobone-koreader-plugin-v0.3.1.zip`；未将 Cookie、密码、签名下载地址、日志或截图写入仓库。
+- 确定插件正式名称为“koo漫画”，升级到 v0.4.0，并加入 `AGPL-3.0-only` 完整许可证与非官方项目声明。
+- 完成新目录、菜单名称、一级工具入口、旧设置只读迁移、更新器和发布工作流改名。
+- 根据两张 Kindle 真机照片修正字号、垂直对齐、书名/作者间距和底部书架缺字；照片只在临时目录查看，没有写入仓库。
+- 增加自适应尺寸模块、横竖屏行列设置、三档文字大小、旋转重排、详情/账号信息面板和横竖屏下载弹窗。
+- 八组回归测试、Lua 5.1 语法解析、发布打包、ZIP 完整性和敏感运行文件扫描通过。
+- 生成 `dist-v0.4.0/release/koocomic.koplugin-v0.4.0.zip`，SHA-256 为 `64042f4cab7ba8b6cdebd35e9644eef47d737876bec24abdb2a17e128dc54b20`。
 
 未解决：
 
-- v0.3.1 需要在实际 Kindle/KOReader 上确认 CDN 下载、重定向和长连接表现。
+- v0.4.0 需要在实际 Kindle/KOReader 上确认旧设置迁移、一级菜单、自适应网格、字体、触控区域、弹窗尺寸以及 CDN 下载表现。
 - Range 断点续传尚未实现，因此保留的 `.part` 目前只用于避免损坏文件冒充完整 EPUB，不用于续传。
+- GitHub 公开仓库确定为 `https://github.com/jackchensky/KooComic`；插件展示名仍为“koo漫画”。在线更新清单使用 `https://jackchensky.github.io/KooComic/update.json`，正式启用仍需完成首次 GitHub Release 和 Pages 部署验证。
 
 下一步：
 
-- 安装 v0.3.1 并复测同一本漫画；成功时确认进度百分比、速度和预计时间会更新。
-- 若仍失败，依据新界面显示的 `timeout`、`closed`、TLS 或 HTTP 状态继续定点修复，且不得提供完整签名 URL。
+- 备份旧插件与设置，只删除 `plugins/koobone.koplugin` 代码目录，安装 `koocomic.koplugin-v0.4.0.zip`。
+- 确认“koo漫画”出现在一级工具菜单、旧账号状态自动迁移、布局设置生效，再复测下载进度和各页面尺寸。
+- 若仍有问题，只提供不含密码、Cookie 或完整签名 URL 的错误文字或已脱敏截图。

@@ -1,4 +1,4 @@
-package.path = "./koobone.koplugin/?.lua;./koobone.koplugin/?/init.lua;" .. package.path
+package.path = "./koocomic.koplugin/?.lua;./koocomic.koplugin/?/init.lua;" .. package.path
 
 local part_size
 

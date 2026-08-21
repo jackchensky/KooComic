@@ -1,4 +1,5 @@
--- KOOBONE for KOReader v0.3
+-- koo漫画 for KOReader
+-- SPDX-License-Identifier: AGPL-3.0-only
 --
 -- The plugin only accesses the library of the account that signs in. Network
 -- logs must never contain passwords, session cookies, or signed download URLs.
@@ -25,16 +26,17 @@ local Storage = require("koobone.storage")
 local Updater = require("koobone.updater")
 local UpdaterUI = require("koobone.ui.updater")
 
-local Koobone = WidgetContainer:extend{
-    name = "koobone",
+local KooComic = WidgetContainer:extend{
+    name = "koocomic",
     is_doc_only = false,
     version = PluginVersion.version,
-    settings_file = DataStorage:getSettingsDir() .. "/koobone.lua",
+    settings_file = DataStorage:getSettingsDir() .. "/koocomic.lua",
+    legacy_settings_file = DataStorage:getSettingsDir() .. "/koobone.lua",
 }
 
-function Koobone:init()
+function KooComic:init()
     math.randomseed(os.time())
-    self.settings = Settings:new(self.settings_file)
+    self.settings = Settings:new(self.settings_file, self.legacy_settings_file)
     self.api = Api:new(self.settings)
     self.auth = Auth:new(self.settings, self.api)
     self.storage = Storage:new(self.settings)
@@ -80,10 +82,10 @@ function Koobone:init()
     self.updater:confirmInstalledUpdate()
 end
 
-function Koobone:addToMainMenu(menu_items)
-    menu_items.koobone = {
-        text = "KOOBONE",
-        sorting_hint = "more_tools",
+function KooComic:addToMainMenu(menu_items)
+    menu_items.koocomic = {
+        text = "koo漫画",
+        sorting_hint = "tools",
         sub_item_table = {
             {
                 text_func = function()
@@ -105,12 +107,14 @@ function Koobone:addToMainMenu(menu_items)
                 callback = function() self:showSettings() end,
             },
             {
-                text = "关于 KOOBONE",
+                text = "关于 koo漫画",
                 keep_menu_open = true,
                 callback = function()
                     UIManager:show(InfoMessage:new{
-                        text = "KOOBONE for KOReader\nv" .. self.version ..
-                            "\n\n浏览个人 KOOBONE 书库、下载 EPUB 并在 KOReader 中阅读。",
+                        text = "koo漫画 for KOReader\nv" .. self.version ..
+                            "\n\n连接用户自己的 KOOBONE 漫画书库、下载 EPUB 并在 KOReader 中阅读。" ..
+                            "\n\n这是独立开发的非官方插件，与 KOOBONE、Bookof.hk 及其开发者不存在隶属、赞助或官方合作关系。" ..
+                            "\n\n许可证：AGPL-3.0-only",
                     })
                 end,
             },
@@ -118,11 +122,11 @@ function Koobone:addToMainMenu(menu_items)
     }
 end
 
-function Koobone:ensureOnline(callback)
+function KooComic:ensureOnline(callback)
     NetworkMgr:runWhenOnline(callback)
 end
 
-function Koobone:showLogin()
+function KooComic:showLogin()
     self:ensureOnline(function()
         LoginDialog.show{
             auth = self.auth,
@@ -132,7 +136,7 @@ function Koobone:showLogin()
     end)
 end
 
-function Koobone:openBookshelf()
+function KooComic:openBookshelf()
     self:ensureOnline(function()
         UIManager:show(InfoMessage:new{ text = "正在验证登录状态……", timeout = 1 })
         UIManager:scheduleIn(0.15, function()
@@ -151,11 +155,11 @@ function Koobone:openBookshelf()
 end
 
 -- Conventional entry point used by SimpleUI/ZenUI style launchers.
-function Koobone:launch()
+function KooComic:launch()
     return self:openBookshelf()
 end
 
-function Koobone:showAccount()
+function KooComic:showAccount()
     AccountUI.show{
         settings = self.settings,
         auth = self.auth,
@@ -170,21 +174,24 @@ function Koobone:showAccount()
     }
 end
 
-function Koobone:showDownloads()
+function KooComic:showDownloads()
     DownloadsUI.show(self.storage, self.downloader)
 end
 
-function Koobone:showSettings()
+function KooComic:showSettings()
     SettingsUI.show{
         settings = self.settings,
         updater = self.updater,
         updater_ui = self.updater_ui,
         storage = self.storage,
         version = self.version,
+        on_ui_changed = function()
+            if self.bookshelf and self.bookshelf.menu then self.bookshelf:show(self.library.items) end
+        end,
     }
 end
 
-function Koobone:scheduleAutomaticUpdateCheck()
+function KooComic:scheduleAutomaticUpdateCheck()
     UIManager:scheduleIn(5, function()
         if self.updater:shouldAutoCheck() and NetworkMgr:isConnected() then
             self.updater_ui:check(false)
@@ -192,4 +199,4 @@ function Koobone:scheduleAutomaticUpdateCheck()
     end)
 end
 
-return Koobone
+return KooComic

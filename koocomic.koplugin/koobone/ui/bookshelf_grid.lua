@@ -17,6 +17,7 @@ local VerticalGroup = require("ui/widget/verticalgroup")
 local VerticalSpan = require("ui/widget/verticalspan")
 local Widget = require("ui/widget/widget")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
+local Metrics = require("koobone.ui.metrics")
 
 local Screen = Device.screen
 local WHITE = Blitbuffer.COLOR_WHITE
@@ -24,12 +25,14 @@ local BLACK = Blitbuffer.COLOR_BLACK
 local DARK_GRAY = Blitbuffer.COLOR_DARK_GRAY or Blitbuffer.COLOR_GRAY
 local LIGHT_GRAY = Blitbuffer.COLOR_GRAY_E or Blitbuffer.COLOR_LIGHT_GRAY or Blitbuffer.COLOR_GRAY
 
-local function dp(value)
-    return math.max(1, math.floor(Screen:scaleBySize(value)))
+local active_text_size = "large"
+
+local function dp(value, minimum, maximum)
+    return Metrics.dp(value, minimum, maximum)
 end
 
 local function face(name, size)
-    return Font:getFace(name, size)
+    return Metrics.face(name, size, active_text_size)
 end
 
 local OffsetContainer = WidgetContainer:extend{ x_off = 0, y_off = 0 }
@@ -127,6 +130,54 @@ local function textBox(text, width, height, size, options)
         alignment = options.alignment or "center",
         fgcolor = options.fgcolor or BLACK,
     }
+end
+
+local function singleLine(text, width, height, size, options)
+    options = options or {}
+    return CenterContainer:new{
+        dimen = Geom:new{ w = math.max(1, width), h = math.max(1, height) },
+        TextWidget:new{
+            text = tostring(text or ""),
+            face = face(options.face or "cfont", size),
+            bold = options.bold == true,
+            fgcolor = options.fgcolor or BLACK,
+        },
+    }
+end
+
+local NavIcon = Widget:extend{ kind = "shelf", width = 1, height = 1, color = BLACK }
+
+function NavIcon:getSize()
+    return Geom:new{ w = self.width, h = self.height }
+end
+
+function NavIcon:paintTo(bb, x, y)
+    local color = self.color or BLACK
+    local w, h = self.width, self.height
+    local line = math.max(2, dp(1))
+    if self.kind == "shelf" then
+        bb:paintBorder(x + line, y + line, w - line * 2, h - line * 2, line, color)
+        local third = math.floor((w - line * 4) / 3)
+        bb:paintRect(x + line * 2 + third, y + line * 2, line, h - line * 4, color)
+        bb:paintRect(x + line * 2 + third * 2, y + line * 2, line, h - line * 4, color)
+    elseif self.kind == "download" then
+        local cx = x + math.floor(w / 2)
+        bb:paintRect(cx - math.floor(line / 2), y + line, line, math.floor(h * 0.55), color)
+        bb:paintRect(cx - line * 3, y + math.floor(h * 0.43), line * 3, line, color)
+        bb:paintRect(cx, y + math.floor(h * 0.43), line * 3, line, color)
+        bb:paintRect(x + line, y + h - line * 2, w - line * 2, line, color)
+    elseif self.kind == "account" then
+        local head = math.max(line * 3, math.floor(h * 0.30))
+        bb:paintBorder(x + math.floor((w - head) / 2), y + line, head, head, line, color)
+        bb:paintBorder(x + line * 2, y + head + line * 2, w - line * 4, h - head - line * 3, line, color)
+    else
+        for index = 0, 2 do
+            local yy = y + line + index * math.floor((h - line * 2) / 3)
+            bb:paintRect(x + line, yy, w - line * 2, line, color)
+            local knob = index == 1 and math.floor(w * 0.66) or math.floor(w * 0.34)
+            bb:paintRect(x + knob - line, yy - line, line * 3, line * 3, color)
+        end
+    end
 end
 
 local PlaceholderCover = WidgetContainer:extend{
@@ -228,9 +279,9 @@ local function badge(text, width, height)
 end
 
 local function bookCard(item, width, height, storage, callback)
-    local title_h = dp(34)
-    local author_h = dp(24)
-    local gap = dp(4)
+    local title_h = dp(25)
+    local author_h = dp(19)
+    local gap = dp(2)
     local cover_h = math.max(dp(110), height - title_h - author_h - gap * 2)
     local cover_w = math.min(math.floor(width * 0.94), math.floor(cover_h * 0.70))
     local title = itemTitle(item)
@@ -271,14 +322,14 @@ local function bookCard(item, width, height, storage, callback)
         align = "center",
         cover_layers,
         VerticalSpan:new{ height = gap },
-        textBox(title, width, title_h, 13, { bold = true }),
-        textBox(itemAuthor(item), width, author_h, 10, { fgcolor = DARK_GRAY }),
+        textBox(title, width, title_h, 14, { bold = true }),
+        textBox(itemAuthor(item), width, author_h, 11, { fgcolor = DARK_GRAY }),
     }
     return tappable(width, height, body, callback, { hold_callback = callback })
 end
 
 local GridShelf = InputContainer:extend{
-    name = "koobone_grid_shelf",
+    name = "koocomic_grid_shelf",
     covers_fullscreen = true,
     stop_events_propagation = true,
     options = nil,
@@ -332,19 +383,19 @@ function GridShelf:_buildHeader(layers, margin, width, y, height)
         tostring(#self.options.books) .. " 本"
     local title = VerticalGroup:new{
         align = "center",
-        textBox("KOOBONE", title_w, math.floor(height * 0.58), 18, { bold = true }),
-        textBox(subtitle, title_w, math.floor(height * 0.34), 10, { fgcolor = DARK_GRAY }),
+        textBox("koo漫画", title_w, math.floor(height * 0.56), 20, { bold = true }),
+        textBox(subtitle, title_w, math.floor(height * 0.36), 12, { fgcolor = DARK_GRAY }),
     }
     local refresh_w = math.floor(right_w * 0.55)
     local header = HorizontalGroup:new{
         align = "center",
-        tappable(back_w, height, TextWidget:new{ text = "‹", face = face("cfont", 24), bold = true },
+        tappable(back_w, height, singleLine("‹", back_w, height, 26, { bold = true }),
             function() self:_close() end),
         CenterContainer:new{ dimen = Geom:new{ w = title_w, h = height }, title },
-        tappable(refresh_w, height, TextWidget:new{ text = "↻", face = face("cfont", 18), bold = true },
+        tappable(refresh_w, height, singleLine("↻", refresh_w, height, 21, { bold = true }),
             self.options.on_refresh),
         tappable(right_w - refresh_w, height,
-            TextWidget:new{ text = "⋮", face = face("cfont", 19), bold = true }, self.options.on_more),
+            singleLine("⋮", right_w - refresh_w, height, 22, { bold = true }), self.options.on_more),
     }
     self:_add(layers, margin, y, header)
 end
@@ -354,7 +405,7 @@ function GridShelf:_buildToolbar(layers, margin, width, y, height)
     local last = width - third * 2
     local border = dp(1)
     local function tool(text, w, callback)
-        return tappable(w, height, textBox(text, w - dp(8), height - dp(4), 12, {}), callback, {
+        return tappable(w, height, singleLine(text, w - dp(8), height - dp(4), 14, { bold = true }), callback, {
             bordersize = border,
         })
     end
@@ -398,22 +449,27 @@ end
 function GridShelf:_buildBottomNav(layers, width, y, height)
     local cell = math.floor(width / 4)
     local last = width - cell * 3
-    local function nav(text, w, selected, callback)
+    local function nav(kind, label, w, selected, callback)
+        local color = selected and WHITE or BLACK
+        local icon_w, icon_h = dp(24), dp(20)
+        local body = VerticalGroup:new{
+            align = "center",
+            NavIcon:new{ kind = kind, width = icon_w, height = icon_h, color = color },
+            VerticalSpan:new{ height = dp(3) },
+            TextWidget:new{ text = label, face = face("cfont", 13), bold = selected, fgcolor = color },
+        }
         return tappable(w, height,
-            textBox(text, w - dp(4), height - dp(4), 12, {
-                bold = selected,
-                fgcolor = selected and WHITE or BLACK,
-            }), callback, {
+            CenterContainer:new{ dimen = Geom:new{ w = w - dp(4), h = height - dp(4) }, body }, callback, {
                 bordersize = dp(1),
                 background = selected and BLACK or WHITE,
                 color = BLACK,
             })
     end
     self:_add(layers, 0, y, HorizontalGroup:new{
-        nav("▦\n书架", cell, true, nil),
-        nav("⇩\n下载", cell, false, self.options.on_downloads),
-        nav("♙\n账号", cell, false, self.options.on_account),
-        nav("⚙\n设置", last, false, self.options.on_settings),
+        nav("shelf", "书架", cell, true, nil),
+        nav("download", "下载", cell, false, self.options.on_downloads),
+        nav("account", "账号", cell, false, self.options.on_account),
+        nav("settings", "设置", last, false, self.options.on_settings),
     })
 end
 
@@ -424,18 +480,18 @@ function GridShelf:_build()
     self.ges_events = {
         ShelfSwipe = { GestureRange:new{ ges = "swipe", range = self.dimen } },
     }
-    local portrait = sh >= sw
-    local columns, rows = portrait and 3 or 4, 2
+    active_text_size = tostring((self.options.ui or {}).text_size or "large")
+    local columns, rows = Metrics.grid(self.options.ui)
     self.perpage = columns * rows
     self.pages = math.max(1, math.ceil(#self.options.books / self.perpage))
     self.page = math.max(1, math.min(self.pages, self.page))
 
-    local margin = dp(12)
-    local header_h = dp(68)
-    local toolbar_h = dp(48)
-    local pager_h = dp(48)
-    local nav_h = dp(66)
-    local grid_gap_y = dp(10)
+    local margin = dp(10)
+    local header_h = dp(72)
+    local toolbar_h = dp(52)
+    local pager_h = dp(46)
+    local nav_h = dp(72)
+    local grid_gap_y = dp(5)
     local grid_gap_x = dp(10)
     local content_w = sw - margin * 2
     local grid_y = margin + header_h + toolbar_h + dp(10)
@@ -522,6 +578,22 @@ end
 
 function GridShelf:onBack()
     return self:_close()
+end
+
+function GridShelf:onScreenResize()
+    if self.closed then return true end
+    self:_build()
+    UIManager:setDirty(self, "full")
+    self:_notifyPage()
+    return true
+end
+
+function GridShelf:onSetDimensions()
+    return self:onScreenResize()
+end
+
+function GridShelf:onRotation()
+    return self:onScreenResize()
 end
 
 function GridShelf:onShow()

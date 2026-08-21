@@ -148,7 +148,7 @@ function Updater:check()
         redirect = true,
         headers = {
             ["Accept"] = "application/json",
-            ["User-Agent"] = "KOReader-KOOBONE-Updater/0.2",
+            ["User-Agent"] = "kooComic-KOReader-Updater/0.4.0",
         },
         block_timeout = 15,
         total_timeout = 30,
@@ -228,7 +228,7 @@ function Updater:_extractPackage(archive_path, stage_path)
         local safe = type(path) == "string" and path ~= ""
             and path:sub(1, 1) ~= "/"
             and path:find("\\", 1, true) == nil
-            and path:match("^koobone%.koplugin/") ~= nil
+            and path:match("^koocomic%.koplugin/") ~= nil
             and path:match("^%.%./") == nil
             and path:match("/%.%./") == nil
             and path:match("/%.%.$") == nil
@@ -261,8 +261,8 @@ function Updater:install(release, on_progress)
         end
     end
 
-    local base = DataStorage:getDataDir() .. "/koobone-updates"
-    local archive = base .. "/koobone-update.zip"
+    local base = DataStorage:getDataDir() .. "/koocomic-updates"
+    local archive = base .. "/koocomic-update.zip"
     local stage = base .. "/stage"
     removeFile(archive)
     removeTree(stage)
@@ -275,7 +275,7 @@ function Updater:install(release, on_progress)
         max_bytes = self.MAX_PACKAGE_BYTES,
         headers = {
             ["Accept"] = "application/zip, application/octet-stream",
-            ["User-Agent"] = "KOReader-KOOBONE-Updater/0.2",
+            ["User-Agent"] = "kooComic-KOReader-Updater/0.4.0",
         },
         on_progress = function(current, total)
             local ratio = total > 0 and math.min(1, current / total) or 0
@@ -302,7 +302,7 @@ function Updater:install(release, on_progress)
     removeFile(archive)
     if not unpacked then removeTree(stage); return nil, unpack_err end
 
-    local staged_plugin = stage .. "/koobone.koplugin"
+    local staged_plugin = stage .. "/koocomic.koplugin"
     local meta = readFile(staged_plugin .. "/_meta.lua", 64 * 1024)
     local main = readFile(staged_plugin .. "/main.lua", 1024 * 1024)
     local staged_version = meta and meta:match('version%s*=%s*"([^"]+)"') or nil

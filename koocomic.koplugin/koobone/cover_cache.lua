@@ -109,7 +109,7 @@ function CoverCache:fetch(item)
         max_bytes = MAX_COVER_BYTES,
         headers = {
             ["Accept"] = "image/avif,image/webp,image/png,image/jpeg,image/*;q=0.8",
-            ["User-Agent"] = "KOReader-KOOBONE/0.3",
+            ["User-Agent"] = "kooComic-KOReader/0.4.0",
             ["Referer"] = self.api.BASE .. "/",
         },
     })

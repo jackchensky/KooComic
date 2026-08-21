@@ -18,7 +18,7 @@ end
 function Api:headers(extra, include_session)
     local headers = {
         ["Accept"] = "*/*",
-        ["User-Agent"] = "KOReader-KOOBONE/0.3.1",
+        ["User-Agent"] = "kooComic-KOReader/0.4.0",
         ["X-KB-FROM"] = self.CLIENT_VERSION .. " WEB(" .. self.WEB_VERSION .. ") GET /web.htm",
         ["Referer"] = self.BASE .. "/web.htm",
     }
@@ -232,7 +232,7 @@ function Api:download(url, part_path, options)
         redirect = true,
         headers = options.headers or {
             ["Accept"] = "*/*",
-            ["User-Agent"] = "KOReader-KOOBONE/0.3.1",
+            ["User-Agent"] = "kooComic-KOReader/0.4.0",
             ["X-KB-FROM"] = self.CLIENT_VERSION .. " WEB(" .. self.WEB_VERSION .. ") FETCH /web.htm",
             ["Referer"] = self.BASE .. "/",
         },

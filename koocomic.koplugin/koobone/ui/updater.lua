@@ -17,7 +17,7 @@ end
 
 function UpdaterUI:_releaseText(release)
     local rows = {
-        "KOOBONE v" .. tostring(release.version) .. " 已发布",
+        "koo漫画 v" .. tostring(release.version) .. " 已发布",
         "当前版本：v" .. tostring(self.updater.current_version),
         "安装包：" .. Util.friendlySize(release.size),
     }
@@ -32,7 +32,7 @@ function UpdaterUI:install(release)
         return
     end
     local dialog = DownloadDialog:new{
-        title = "更新 KOOBONE 到 v" .. tostring(release.version),
+        title = "更新 koo漫画到 v" .. tostring(release.version),
         hide_cancel = true,
     }
     dialog:show()
@@ -50,7 +50,7 @@ function UpdaterUI:install(release)
             return
         end
         UIManager:show(ConfirmBox:new{
-            text = "KOOBONE v" .. tostring(release.version) ..
+            text = "koo漫画 v" .. tostring(release.version) ..
                 " 已安装。必须重启 KOReader 才能启用新版本。",
             cancel_text = "稍后重启",
             ok_text = "立即重启",

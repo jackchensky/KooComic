@@ -130,6 +130,7 @@ function Bookshelf:_gridOptions(books)
         books = books,
         storage = self.storage,
         account = self.settings:account(),
+        ui = self.settings:ui(),
         search_label = search_label,
         sort_label = sort_label,
         filter_label = filter_label,
@@ -138,6 +139,7 @@ function Bookshelf:_gridOptions(books)
                 item = item,
                 storage = self.storage,
                 downloader = self.downloader,
+                settings = self.settings,
             }
         end,
         on_refresh = function() self:refresh() end,
@@ -186,6 +188,7 @@ function Bookshelf:_items(books)
                     item = item,
                     storage = self.storage,
                     downloader = self.downloader,
+                    settings = self.settings,
                 }
             end,
         }
@@ -199,7 +202,7 @@ function Bookshelf:_showListFallback(books)
     local subtitle = tostring(#(books or {})) .. " 本漫画"
     if account.nick and account.nick ~= "" then subtitle = account.nick .. "　·　" .. subtitle end
     self.menu = Menu:new{
-        title = "KOOBONE 书架",
+        title = "koo漫画",
         subtitle = subtitle,
         item_table = self:_items(books),
         is_borderless = true,
@@ -330,7 +333,7 @@ end
 function Bookshelf:showMore()
     local dialog
     dialog = ButtonDialog:new{
-        title = "KOOBONE",
+        title = "koo漫画",
         buttons = {
             {
                 {

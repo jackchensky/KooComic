@@ -44,7 +44,7 @@ function DownloadsUI.show(storage, downloader)
         return
     end
     local menu = Menu:new{
-        title = "KOOBONE 下载管理",
+        title = "koo漫画下载",
         subtitle = tostring(#rows) .. " 条记录",
         item_table = rows,
         is_borderless = true,
@@ -55,4 +55,3 @@ function DownloadsUI.show(storage, downloader)
 end
 
 return DownloadsUI
-

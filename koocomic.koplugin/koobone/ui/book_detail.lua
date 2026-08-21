@@ -1,5 +1,5 @@
-local ButtonDialog = require("ui/widget/buttondialog")
 local UIManager = require("ui/uimanager")
+local InfoPanel = require("koobone.ui.info_panel")
 local Util = require("koobone.util")
 
 local BookDetail = {}
@@ -16,9 +16,6 @@ function BookDetail.show(options)
     local local_state = downloaded and "已下载" or
         (partial > 0 and ("有临时文件 " .. Util.friendlySize(partial)) or "未下载")
     local description = table.concat({
-        title,
-        "",
-        "作者：" .. author,
         "文件：" .. Util.friendlySize(item.file_size),
         "KOOBONE 进度：" .. progress,
         "本地状态：" .. local_state,
@@ -26,18 +23,21 @@ function BookDetail.show(options)
 
     local dialog
     local action_text = downloaded and "打开阅读" or (partial > 0 and "重新下载" or "下载")
-    dialog = ButtonDialog:new{
-        title = description,
+    dialog = InfoPanel:new{
+        title = title,
+        subtitle = author,
+        body = description,
+        text_size = (options.settings and options.settings:ui().text_size) or "large",
         buttons = {
             {
                 {
                     text = "关闭",
-                    callback = function() UIManager:close(dialog) end,
+                    callback = function() dialog:close() end,
                 },
                 {
                     text = action_text,
                     callback = function()
-                        UIManager:close(dialog)
+                        dialog:close()
                         if downloaded then
                             downloader:open(storage:itemPath(item))
                         else
@@ -53,4 +53,3 @@ function BookDetail.show(options)
 end
 
 return BookDetail
-

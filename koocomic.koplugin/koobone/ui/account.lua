@@ -1,7 +1,7 @@
-local ButtonDialog = require("ui/widget/buttondialog")
 local ConfirmBox = require("ui/widget/confirmbox")
 local InfoMessage = require("ui/widget/infomessage")
 local UIManager = require("ui/uimanager")
+local InfoPanel = require("koobone.ui.info_panel")
 
 local AccountUI = {}
 
@@ -11,23 +11,24 @@ function AccountUI.show(options)
     local account = settings:account()
     local status = auth:hasSession() and "已登录" or "未登录"
     local remembered = account.remember_password and "已开启" or "未开启"
-    local title = table.concat({
-        "账号与登录",
-        "",
+    local body = table.concat({
         "状态：" .. status,
         "昵称：" .. tostring(account.nick or "—"),
         "邮箱：" .. tostring(account.email ~= "" and account.email or "—"),
         "记住密码：" .. remembered,
     }, "\n")
     local dialog
-    dialog = ButtonDialog:new{
-        title = title,
+    dialog = InfoPanel:new{
+        title = "账号管理",
+        subtitle = "KOOBONE 连接状态",
+        body = body,
+        text_size = settings:ui().text_size,
         buttons = {
             {
                 {
                     text = auth:hasSession() and "重新登录" or "登录",
                     callback = function()
-                        UIManager:close(dialog)
+                        dialog:close()
                         if options.on_login then options.on_login() end
                     end,
                 },
@@ -38,7 +39,7 @@ function AccountUI.show(options)
                     enabled = account.remember_password == true,
                     callback = function()
                         settings:clearPassword()
-                        UIManager:close(dialog)
+                        dialog:close()
                         UIManager:show(InfoMessage:new{ text = "已清除保存的密码。" })
                     end,
                 },
@@ -54,8 +55,8 @@ function AccountUI.show(options)
                             ok_text = "退出账号",
                             ok_callback = function()
                                 auth:logout()
-                                UIManager:close(dialog)
-                                UIManager:show(InfoMessage:new{ text = "已退出 KOOBONE。" })
+                                dialog:close()
+                                UIManager:show(InfoMessage:new{ text = "已退出 KOOBONE 账号。" })
                                 if options.on_logout then options.on_logout() end
                             end,
                         })
@@ -66,13 +67,13 @@ function AccountUI.show(options)
                 {
                     text = "版本与设置",
                     callback = function()
-                        UIManager:close(dialog)
+                        dialog:close()
                         if options.on_settings then options.on_settings() end
                     end,
                 },
                 {
                     text = "关闭",
-                    callback = function() UIManager:close(dialog) end,
+                    callback = function() dialog:close() end,
                 },
             },
         },
@@ -82,4 +83,3 @@ function AccountUI.show(options)
 end
 
 return AccountUI
-

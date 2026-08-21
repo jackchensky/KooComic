@@ -1,14 +1,16 @@
-# KOOBONE for KOReader v0.3.1
+# koo漫画 for KOReader v0.4.0
 
 在 KOReader 中登录自己的 KOOBONE 账号、浏览个人漫画书库、下载完整 EPUB 并直接阅读。
 
+> koo漫画是独立开发的非官方 KOReader 插件，与 KOOBONE、Bookof.hk 及其开发者不存在隶属、赞助或官方合作关系。KOOBONE 名称仅用于说明兼容服务。
+
 ## 主要功能
 
-- 自动迁移 v0.1 已保存的登录会话。
+- 自动迁移旧版 `koobone.lua` 中的登录会话和设置，不删除旧文件。
 - 优先验证现有 Cookie，失效后再提示登录。
 - 可选“记住密码”，默认关闭，并明确提示密码保存在本机设置中。
 - 账号状态、清除密码和退出账号。
-- 竖屏三列、每页六本的封面网格书架；横屏自动增加为四列。
+- 自适应封面网格；可分别设置竖屏/横屏的封面列数和行数，并可调整界面文字大小。
 - 搜索、最近加入/标题/阅读进度排序，以及下载和阅读状态筛选。
 - 封面、阅读进度与下载状态角标、首尾页/上一页/下一页导航。
 - 底部书架、下载、账号、设置导航；不支持自定义网格的旧版 KOReader 自动回退到列表。
@@ -23,7 +25,7 @@
 
 ## 安装
 
-将整个 `koobone.koplugin` 文件夹复制到：
+删除旧的插件代码目录（不要删除设置和漫画），再将整个 `koocomic.koplugin` 文件夹复制到：
 
 ```text
 koreader/plugins/
@@ -32,19 +34,19 @@ koreader/plugins/
 完全重启 KOReader，然后打开：
 
 ```text
-工具 → KOOBONE
+工具 → koo漫画
 ```
 
 ## 在线更新
 
-代码已经包含安全更新框架，但在 GitHub 仓库和 Release 地址确定之前默认关闭。发布仓库创建后，需要在 `koobone/plugin_version.lua` 中配置：
+插件通过公开 GitHub Release 下载更新，并从 GitHub Pages 读取固定版本清单。当前地址配置在 `koobone/plugin_version.lua`：
 
 ```lua
-manifest_url = "https://.../update.json"
-release_prefix = "https://github.com/.../releases/download/"
+manifest_url = "https://jackchensky.github.io/KooComic/update.json"
+release_prefix = "https://github.com/jackchensky/KooComic/releases/download/"
 ```
 
-不得使用占位地址发布插件。
+自动检查只读取版本清单；下载和安装新版本前仍会要求用户确认，并校验文件大小和 SHA-256。
 
 ## 安全说明
 
@@ -54,3 +56,7 @@ release_prefix = "https://github.com/.../releases/download/"
 - 退出账号会清除会话和保存的密码，不删除已下载漫画。
 - 封面缓存只包含公开书籍封面，不保存账号 Cookie 或签名下载地址。
 - KOOBONE 并未提供公开 API，网页端接口变化可能导致插件失效。
+
+## 许可证
+
+本项目采用 GNU Affero General Public License v3.0 only（`AGPL-3.0-only`）。详情见随插件提供的 `LICENSE` 和 `NOTICE`。

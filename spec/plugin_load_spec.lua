@@ -1,4 +1,4 @@
-package.path = "./koobone.koplugin/?.lua;./koobone.koplugin/?/init.lua;" .. package.path
+package.path = "./koocomic.koplugin/?.lua;./koocomic.koplugin/?/init.lua;" .. package.path
 
 local function class()
     local object = {}
@@ -159,8 +159,8 @@ G_reader_settings = {
     readSetting = function() return "/tmp" end,
 }
 
-local Plugin = dofile("koobone.koplugin/main.lua")
-assert(Plugin.version == "0.3.1")
+local Plugin = dofile("koocomic.koplugin/main.lua")
+assert(Plugin.version == "0.4.0")
 local instance = Plugin:new{
     ui = { menu = { registerToMainMenu = function() end } },
 }

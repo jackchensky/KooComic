@@ -5,7 +5,7 @@ Settings.__index = Settings
 
 local function defaults()
     return {
-        schema_version = 2,
+        schema_version = 3,
         account = {
             email = "",
             password = nil,
@@ -29,6 +29,13 @@ local function defaults()
             available = nil,
             pending_version = nil,
         },
+        ui = {
+            portrait_columns = 3,
+            portrait_rows = 2,
+            landscape_columns = 4,
+            landscape_rows = 2,
+            text_size = "large",
+        },
     }
 end
 
@@ -44,10 +51,11 @@ local function merge(target, source)
     return target
 end
 
-function Settings:new(path)
+function Settings:new(path, legacy_path)
     local object = setmetatable({
         path = assert(path, "settings path required"),
         handle = LuaSettings:open(path),
+        legacy_path = legacy_path,
     }, self)
     object:load()
     return object
@@ -56,14 +64,25 @@ end
 function Settings:load()
     local data = self.handle:readSetting("data")
     if type(data) ~= "table" then
-        data = defaults()
-        local legacy = self.handle:readSetting("settings")
+        local legacy
+        if self.legacy_path and self.legacy_path ~= self.path then
+            local legacy_handle = LuaSettings:open(self.legacy_path)
+            legacy = legacy_handle:readSetting("data") or legacy_handle:readSetting("settings")
+        end
+        legacy = legacy or self.handle:readSetting("settings")
         if type(legacy) == "table" then
-            data.account.email = legacy.email or ""
-            data.account.vlibsid = legacy.vlibsid
-            data.account.kbskey = legacy.kbskey
-            data.account.uin = legacy.uin
-            data.account.nick = legacy.nick
+            if type(legacy.account) == "table" then
+                data = merge(defaults(), legacy)
+            else
+                data = defaults()
+                data.account.email = legacy.email or ""
+                data.account.vlibsid = legacy.vlibsid
+                data.account.kbskey = legacy.kbskey
+                data.account.uin = legacy.uin
+                data.account.nick = legacy.nick
+            end
+        else
+            data = defaults()
         end
     else
         data = merge(defaults(), data)
@@ -71,7 +90,7 @@ function Settings:load()
     if data.account.remember_password ~= true then
         data.account.password = nil
     end
-    data.schema_version = 2
+    data.schema_version = 3
     self.data = data
     self:flush()
 end
@@ -91,6 +110,10 @@ end
 
 function Settings:update()
     return self.data.update
+end
+
+function Settings:ui()
+    return self.data.ui
 end
 
 function Settings:setCredentials(email, password, remember)
@@ -123,4 +146,3 @@ function Settings:logout()
 end
 
 return Settings
-

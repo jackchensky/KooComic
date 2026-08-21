@@ -1,4 +1,4 @@
-package.path = "./koobone.koplugin/?.lua;./koobone.koplugin/?/init.lua;" .. package.path
+package.path = "./koocomic.koplugin/?.lua;./koocomic.koplugin/?/init.lua;" .. package.path
 
 package.preload["socket"] = function()
     return { gettime = function() return os.time() end }
@@ -53,7 +53,7 @@ local updater = Updater:new{
     current_version = "0.2.0",
     manifest_url = "https://example.test/update.json",
     release_prefix = "https://example.test/releases/",
-    plugin_dir = "/tmp/koobone.koplugin",
+    plugin_dir = "/tmp/koocomic.koplugin",
 }
 local release = { version = "0.3.0" }
 

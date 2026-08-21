@@ -12,6 +12,9 @@ function SettingsUI.show(options)
     local storage = assert(options.storage, "storage required")
     local version = assert(options.version, "version required")
     local state = settings:update()
+    local ui = settings:ui()
+    local text_size_labels = { normal = "标准", large = "大", extra_large = "特大" }
+    local text_size_label = text_size_labels[ui.text_size] or "大"
     local reminder
     if state.auto_update_prompt_disabled then
         reminder = "已停止（已稍后 3 次）"
@@ -21,7 +24,11 @@ function SettingsUI.show(options)
         reminder = "关闭"
     end
     local title = table.concat({
-        "版本与设置",
+        "koo漫画设置",
+        "",
+        "竖屏书架：" .. tostring(ui.portrait_columns) .. " 列 × " .. tostring(ui.portrait_rows) .. " 行",
+        "横屏书架：" .. tostring(ui.landscape_columns) .. " 列 × " .. tostring(ui.landscape_rows) .. " 行",
+        "界面文字：" .. text_size_label,
         "",
         "当前版本：v" .. version,
         "KOReader：" .. tostring(updater:koreaderVersion()),
@@ -29,9 +36,50 @@ function SettingsUI.show(options)
     }, "\n")
 
     local dialog
+    local function applyUiChange()
+        settings:flush()
+        UIManager:close(dialog)
+        if options.on_ui_changed then options.on_ui_changed() end
+        SettingsUI.show(options)
+    end
+    local function cycle(key, values)
+        local current = ui[key]
+        local target = values[1]
+        for index, value in ipairs(values) do
+            if value == current then target = values[index % #values + 1]; break end
+        end
+        ui[key] = target
+        applyUiChange()
+    end
     dialog = ButtonDialog:new{
         title = title,
         buttons = {
+            {
+                {
+                    text = "竖屏列数：" .. tostring(ui.portrait_columns),
+                    callback = function() cycle("portrait_columns", { 2, 3, 4 }) end,
+                },
+                {
+                    text = "竖屏行数：" .. tostring(ui.portrait_rows),
+                    callback = function() cycle("portrait_rows", { 1, 2, 3 }) end,
+                },
+            },
+            {
+                {
+                    text = "横屏列数：" .. tostring(ui.landscape_columns),
+                    callback = function() cycle("landscape_columns", { 2, 3, 4, 5 }) end,
+                },
+                {
+                    text = "横屏行数：" .. tostring(ui.landscape_rows),
+                    callback = function() cycle("landscape_rows", { 1, 2, 3 }) end,
+                },
+            },
+            {
+                {
+                    text = "界面文字：" .. text_size_label,
+                    callback = function() cycle("text_size", { "normal", "large", "extra_large" }) end,
+                },
+            },
             {
                 {
                     text = "检查更新",
@@ -102,4 +150,3 @@ function SettingsUI.show(options)
 end
 
 return SettingsUI
-

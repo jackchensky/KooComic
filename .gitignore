@@ -4,6 +4,8 @@
 koobone-koreader-codex-context/images/
 KOOBONE_KOReader_Codex_Project_Context.zip
 koobone-koreader-plugin-*.zip
+koocomic-koreader-plugin-*.zip
+dist*/
 
 # 运行时数据和敏感信息。
 *.log
@@ -13,4 +15,3 @@ koobone-koreader-plugin-*.zip
 settings/
 cache/
 downloads/
-
