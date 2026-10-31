@@ -2,6 +2,28 @@ local socket = require("socket")
 
 local Util = {}
 
+function Util.truncateUtf8(value, limit, suffix)
+    local text = tostring(value or "")
+    limit = math.max(0, tonumber(limit) or #text)
+    suffix = tostring(suffix or "")
+    if #text <= limit then return text end
+    local keep = math.max(0, limit - #suffix)
+    local cut = text:sub(1, keep)
+    if #cut > 0 then
+        local start = #cut
+        while start > 1 do
+            local byte = cut:byte(start)
+            if not byte or byte < 128 or byte >= 192 then break end
+            start = start - 1
+        end
+        local first = cut:byte(start)
+        local expected = first and (first < 128 and 1
+            or first < 224 and 2 or first < 240 and 3 or first < 248 and 4 or 1) or 1
+        if #cut - start + 1 < expected then cut = cut:sub(1, start - 1) end
+    end
+    return cut .. suffix
+end
+
 function Util.trim(value)
     return tostring(value or ""):gsub("^%s+", ""):gsub("%s+$", "")
 end
@@ -91,7 +113,7 @@ function Util.cleanMessage(value, limit)
     local text = tostring(value or ""):gsub("[%c]+", " "):gsub("%s+", " ")
     text = Util.trim(text)
     limit = tonumber(limit) or 240
-    if #text > limit then text = text:sub(1, limit - 3) .. "..." end
+    if #text > limit then text = Util.truncateUtf8(text, limit, "...") end
     return text
 end
 

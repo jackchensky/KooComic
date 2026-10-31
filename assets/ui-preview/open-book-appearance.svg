@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="650" viewBox="0 0 1200 650"><rect width="1200" height="650" fill="#f7f6f3"/><g font-family="PingFang SC,Heiti SC,sans-serif"><text x="60" y="66" font-size="30" font-weight="600" fill="#242424">打开书 · 外观素材预览</text><text x="60" y="103" font-size="17" fill="#727272">弧形书页 / 层叠页边 / 中间书脊 / 轻微投影</text><rect x="40" y="136" width="550" height="410" rx="18" fill="#fff"/><rect x="610" y="136" width="550" height="410" rx="18" fill="#fffbf5"/><g transform="translate(65 176) scale(1.25)">
+<!-- Original KooComic artwork. AGPL-3.0-only. Content slots: left 44,43,130,179; right 226,43,130,179. -->
+<defs>
+ <linearGradient id="monoleft" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#b5b5b5"/><stop offset=".10" stop-color="#ffffff"/><stop offset=".81" stop-color="#ffffff"/><stop offset="1" stop-color="#b5b5b5"/></linearGradient>
+ <linearGradient id="monoright" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#b5b5b5"/><stop offset=".19" stop-color="#ffffff"/><stop offset=".90" stop-color="#ffffff"/><stop offset="1" stop-color="#b5b5b5"/></linearGradient>
+</defs>
+<ellipse cx="200" cy="260" rx="188" ry="11" fill="#252525" opacity=".07"/>
+<ellipse cx="200" cy="257" rx="177" ry="8" fill="#252525" opacity=".13"/>
+<path d="M25 34 Q111 16 198 42 Q288 16 375 34 L390 248 Q294 234 207 259 L193 259 Q106 234 10 248 Z" fill="#666666"/>
+<path d="M27 30 Q111 13 198 39 Q289 13 373 30 L385 241 Q290 227 201 252 Q110 227 15 241 Z" fill="#aaa9a7" stroke="#b2b2b2" stroke-width="1.4"/>
+<path d="M24 231 Q110 217 198 245 M22 235 Q110 221 198 249 M202 245 Q290 217 376 231 M202 249 Q290 221 378 235" fill="none" stroke="#ffffff" stroke-width="2"/>
+<path d="M30 26 Q111 6 198 35 L198 243 Q108 219 18 236 Z" fill="url(#monoleft)" stroke="#b2b2b2" stroke-width="1.4"/>
+<path d="M202 35 Q289 6 370 26 L382 236 Q292 219 202 243 Z" fill="url(#monoright)" stroke="#b2b2b2" stroke-width="1.4"/>
+<path d="M34 30 Q112 11 194 39 M206 39 Q288 11 366 30" fill="none" stroke="#ffffff" stroke-width="2.5"/>
+<path d="M198 35 Q200 109 198 243 Q200 247 202 243 Q200 109 202 35" fill="#747474"/>
+<path d="M193 40 Q195 142 193 237 M207 40 Q205 142 207 237" fill="none" stroke="#ffffff" stroke-width="1.7" opacity=".8"/>
+<path d="M24 234 Q109 217 194 241 M206 241 Q291 217 376 234" fill="none" stroke="#b2b2b2" stroke-width="1.5"/>
+
+<svg x="44" y="43" width="130" height="179" viewBox="0 0 130 179"><rect width="130" height="179" fill="#d0d0d0"/><circle cx="95" cy="54" r="21" fill="#fafafa"/><path d="M0 115 L42 59 L75 95 L100 68 L130 107 V179 H0Z" fill="#a4a4a4"/><path d="M0 139 L28 101 L52 121 L91 88 L130 129 V179 H0Z" fill="#717171"/><path d="M0 156 Q36 130 66 149 T130 139 V179 H0Z" fill="#444444"/><path d="M81 179 Q44 167 68 153 Q89 139 73 130" fill="none" stroke="#e3e3e3" stroke-width="5"/><text x="65" y="28" text-anchor="middle" font-size="18" font-weight="600" fill="#242424">雾山之下</text><rect x=".5" y=".5" width="129" height="178" fill="none" stroke="#666" stroke-width="1"/></svg><text x="291" y="123" text-anchor="middle" font-size="20" font-weight="600" fill="#303030">雾山之下</text><text x="291" y="148" text-anchor="middle" font-size="15" fill="#656565">卷 01</text></g><g transform="translate(635 176) scale(1.25)">
+<!-- Original KooComic artwork. AGPL-3.0-only. Content slots: left 44,43,130,179; right 226,43,130,179. -->
+<defs>
+ <linearGradient id="warmleft" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#cbb99c"/><stop offset=".10" stop-color="#fffdf7"/><stop offset=".81" stop-color="#fffdf7"/><stop offset="1" stop-color="#cbb99c"/></linearGradient>
+ <linearGradient id="warmright" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#cbb99c"/><stop offset=".19" stop-color="#fffdf7"/><stop offset=".90" stop-color="#fffdf7"/><stop offset="1" stop-color="#cbb99c"/></linearGradient>
+</defs>
+<ellipse cx="200" cy="260" rx="188" ry="11" fill="#67503b" opacity=".07"/>
+<ellipse cx="200" cy="257" rx="177" ry="8" fill="#67503b" opacity=".13"/>
+<path d="M25 34 Q111 16 198 42 Q288 16 375 34 L390 248 Q294 234 207 259 L193 259 Q106 234 10 248 Z" fill="#89633f"/>
+<path d="M27 30 Q111 13 198 39 Q289 13 373 30 L385 241 Q290 227 201 252 Q110 227 15 241 Z" fill="#cbb48f" stroke="#c6b397" stroke-width="1.4"/>
+<path d="M24 231 Q110 217 198 245 M22 235 Q110 221 198 249 M202 245 Q290 217 376 231 M202 249 Q290 221 378 235" fill="none" stroke="#fffdf7" stroke-width="2"/>
+<path d="M30 26 Q111 6 198 35 L198 243 Q108 219 18 236 Z" fill="url(#warmleft)" stroke="#c6b397" stroke-width="1.4"/>
+<path d="M202 35 Q289 6 370 26 L382 236 Q292 219 202 243 Z" fill="url(#warmright)" stroke="#c6b397" stroke-width="1.4"/>
+<path d="M34 30 Q112 11 194 39 M206 39 Q288 11 366 30" fill="none" stroke="#fffdf7" stroke-width="2.5"/>
+<path d="M198 35 Q200 109 198 243 Q200 247 202 243 Q200 109 202 35" fill="#8b704d"/>
+<path d="M193 40 Q195 142 193 237 M207 40 Q205 142 207 237" fill="none" stroke="#fffdf7" stroke-width="1.7" opacity=".8"/>
+<path d="M24 234 Q109 217 194 241 M206 241 Q291 217 376 234" fill="none" stroke="#c6b397" stroke-width="1.5"/>
+
+<svg x="44" y="43" width="130" height="179" viewBox="0 0 130 179"><rect width="130" height="179" fill="#c9d7ca"/><circle cx="95" cy="54" r="21" fill="#fff1ce"/><path d="M0 115 L42 59 L75 95 L100 68 L130 107 V179 H0Z" fill="#789a96"/><path d="M0 139 L28 101 L52 121 L91 88 L130 129 V179 H0Z" fill="#436d71"/><path d="M0 156 Q36 130 66 149 T130 139 V179 H0Z" fill="#254d53"/><path d="M81 179 Q44 167 68 153 Q89 139 73 130" fill="none" stroke="#dbe1ce" stroke-width="5"/><text x="65" y="28" text-anchor="middle" font-size="18" font-weight="600" fill="#24434b">雾山之下</text><rect x=".5" y=".5" width="129" height="178" fill="none" stroke="#666" stroke-width="1"/></svg><text x="291" y="123" text-anchor="middle" font-size="20" font-weight="600" fill="#744619">雾山之下</text><text x="291" y="148" text-anchor="middle" font-size="15" fill="#825c39">卷 01</text></g><text x="315" y="578" text-anchor="middle" font-size="22" fill="#333">黑白版</text><text x="885" y="578" text-anchor="middle" font-size="22" fill="#744619">暖纸色版</text><text x="600" y="622" text-anchor="middle" font-size="16" fill="#777">示例封面与书名用于说明组合方式；不是 Kindle 实机截图，也不是真实漫画内页。</text></g></svg>

@@ -3,6 +3,8 @@ package.path = "./koocomic.koplugin/?.lua;./koocomic.koplugin/?/init.lua;" .. pa
 local requests = {}
 local responses = {}
 local json_results = {}
+local active_block_timeout
+local sink_block_timeouts = {}
 
 package.preload["socket"] = function()
     return { gettime = function() return os.time() end }
@@ -13,7 +15,10 @@ package.preload["socket.http"] = function()
             requests[#requests + 1] = options
             local response = assert(table.remove(responses, 1), "missing fake response")
             if response.error then error(response.error) end
-            if response.transport_error then return nil, response.transport_error end
+            if response.transport_error then
+                if options.sink and response.body then options.sink(response.body) end
+                return nil, response.transport_error
+            end
             if options.sink and response.body then options.sink(response.body) end
             return 1, response.code, response.headers or {}, response.status or "OK"
         end,
@@ -26,9 +31,12 @@ package.preload["ssl.https"] = function()
 end
 package.preload["socketutil"] = function()
     return {
-        set_timeout = function() end,
-        reset_timeout = function() end,
+        set_timeout = function(_, block_timeout)
+            active_block_timeout = block_timeout
+        end,
+        reset_timeout = function() active_block_timeout = nil end,
         table_sink = function(target)
+            sink_block_timeouts[#sink_block_timeouts + 1] = active_block_timeout
             return function(chunk)
                 if chunk then target[#target + 1] = chunk end
                 return 1
@@ -176,24 +184,64 @@ ok, err = api:login("reader@example.test", "test-password")
 assert(ok == nil)
 assert(err == "服务器返回了无法识别的登录响应")
 
--- KBSKEY is optional when deciding whether a previously verified session can
--- be restored; validateSession() performs the actual server-side check.
+-- A legacy cookie session cannot be used as an API-key session.
 local Auth = require("koobone.auth")
 account.uin = 126
 local auth = Auth:new(settings, api)
-assert(auth:hasSession() == true)
+assert(auth:hasSession() == false)
 
--- KOReader routes https:// URLs through socket.http so its compatibility
--- adjustments remain active. Also retain LuaSocket's transport error instead
--- of replacing it with the generic text "network error".
-responses[#responses + 1] = { transport_error = "timeout" }
+-- A buffered GET gets a fresh sink and one retry after a socket wait error.
+-- KOReader still routes HTTPS through socket.http for Kindle compatibility.
+responses[#responses + 1] = { transport_error = "wantread", body = "partial" }
+responses[#responses + 1] = { code = 200, body = "complete" }
+local before = #requests
 local response, request_err = api:request{
     url = "https://download.example.test/book.epub",
     method = "GET",
     include_session = false,
 }
+assert(response and response.body == "complete", request_err)
+assert(#requests == before + 2)
+assert(requests[before + 1].url == "https://download.example.test/book.epub")
+assert(requests[before + 2].url == "https://download.example.test/book.epub")
+assert(sink_block_timeouts[#sink_block_timeouts] == 20)
+
+-- A repeated failure remains visible on screen with the safe host and retry
+-- count; it never includes URL query parameters or account credentials.
+responses[#responses + 1] = { transport_error = "wantread" }
+responses[#responses + 1] = { transport_error = "wantread" }
+before = #requests
+response, request_err = api:request{
+    url = "https://bookof.hk/uinfo.php?token=secret-test-value",
+    method = "GET",
+}
 assert(response == nil)
-assert(request_err == "timeout")
-assert(requests[10].url == "https://download.example.test/book.epub")
+assert(#requests == before + 2)
+assert(request_err:find("wantread", 1, true))
+assert(request_err:find("bookof.hk", 1, true))
+assert(request_err:find("已重试一次", 1, true))
+assert(not request_err:find("secret-test-value", 1, true))
+
+-- POST and streamed downloads are not retried: their source or partial file
+-- cannot safely be replayed by this generic request helper.
+responses[#responses + 1] = { transport_error = "wantread" }
+before = #requests
+response, request_err = api:request{
+    url = "https://bookof.hk/login_do.php",
+    method = "POST",
+    source = "test-body",
+}
+assert(response == nil and #requests == before + 1)
+assert(request_err:find("未自动重试", 1, true))
+
+responses[#responses + 1] = { transport_error = "wantread", body = "partial" }
+before = #requests
+response, request_err = api:request{
+    url = "https://download.example.test/book.epub",
+    method = "GET",
+    sink = function() return 1 end,
+}
+assert(response == nil and #requests == before + 1)
+assert(request_err:find("未自动重试", 1, true))
 
 print("auth API spec: OK")

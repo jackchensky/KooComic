@@ -2,6 +2,7 @@ local ButtonDialog = require("ui/widget/buttondialog")
 local ConfirmBox = require("ui/widget/confirmbox")
 local InfoMessage = require("ui/widget/infomessage")
 local UIManager = require("ui/uimanager")
+local pathchooser_available, PathChooser = pcall(require, "ui/widget/pathchooser")
 
 local SettingsUI = {}
 
@@ -10,6 +11,7 @@ function SettingsUI.show(options)
     local updater = assert(options.updater, "updater required")
     local updater_ui = assert(options.updater_ui, "updater ui required")
     local storage = assert(options.storage, "storage required")
+    local downloader = options.downloader
     local version = assert(options.version, "version required")
     local state = settings:update()
     local ui = settings:ui()
@@ -24,11 +26,12 @@ function SettingsUI.show(options)
         reminder = "关闭"
     end
     local title = table.concat({
-        "koo漫画设置",
+        "KooComic·可漫设置",
         "",
         "竖屏书架：" .. tostring(ui.portrait_columns) .. " 列 × " .. tostring(ui.portrait_rows) .. " 行",
         "横屏书架：" .. tostring(ui.landscape_columns) .. " 列 × " .. tostring(ui.landscape_rows) .. " 行",
         "界面文字：" .. text_size_label,
+        "下载目录：" .. storage:downloadDir(),
         "",
         "当前版本：v" .. version,
         "KOReader：" .. tostring(updater:koreaderVersion()),
@@ -50,6 +53,80 @@ function SettingsUI.show(options)
         end
         ui[key] = target
         applyUiChange()
+    end
+    local function applyDirectory(path)
+        local valid, err = storage:validateDownloadDir(path)
+        if not valid then
+            UIManager:show(InfoMessage:new{ text = "无法使用这个下载目录：\n" .. tostring(err) })
+            return
+        end
+        local current = storage:downloadDir()
+        if valid == current then
+            UIManager:show(InfoMessage:new{ text = "当前已经使用这个下载目录。" })
+            return
+        end
+        UIManager:show(ConfirmBox:new{
+            text = table.concat({
+                "确定切换漫画下载目录吗？",
+                "",
+                "新目录：" .. valid,
+                "",
+                "只影响之后的新下载；旧目录中的漫画不会移动，仍可继续打开和删除。",
+            }, "\n"),
+            cancel_text = "取消",
+            ok_text = "切换目录",
+            ok_callback = function()
+                local saved, save_err = storage:setDownloadDir(valid)
+                if not saved then
+                    UIManager:show(InfoMessage:new{ text = "切换失败：\n" .. tostring(save_err) })
+                    return
+                end
+                UIManager:show(InfoMessage:new{ text = "下载目录已切换：\n" .. saved })
+                if options.on_ui_changed then options.on_ui_changed() end
+            end,
+        })
+    end
+    local function chooseDirectory()
+        if downloader and downloader:isActive() then
+            UIManager:show(InfoMessage:new{ text = "请等待当前下载任务结束后再切换目录。" })
+            return
+        end
+        if not pathchooser_available or not PathChooser then
+            UIManager:show(InfoMessage:new{
+                text = "当前 KOReader 版本不支持目录选择器，请先升级 KOReader。",
+            })
+            return
+        end
+        UIManager:close(dialog)
+        UIManager:show(PathChooser:new{
+            select_directory = true,
+            select_file = false,
+            show_files = false,
+            path = storage:downloadDir(),
+            onConfirm = function(path) applyDirectory(path) end,
+        })
+    end
+    local function showDirectoryMenu()
+        local directory_dialog
+        directory_dialog = ButtonDialog:new{
+            title = "漫画下载目录\n\n当前：" .. storage:downloadDir(),
+            buttons = {
+                { { text = "选择新目录", callback = function()
+                    UIManager:close(directory_dialog)
+                    chooseDirectory()
+                end } },
+                { { text = "恢复默认目录", callback = function()
+                    if downloader and downloader:isActive() then
+                        UIManager:show(InfoMessage:new{ text = "请等待当前下载任务结束后再切换目录。" })
+                        return
+                    end
+                    UIManager:close(directory_dialog)
+                    applyDirectory(storage:defaultDownloadDir())
+                end } },
+                { { text = "关闭", callback = function() UIManager:close(directory_dialog) end } },
+            },
+        }
+        UIManager:show(directory_dialog)
     end
     dialog = ButtonDialog:new{
         title = title,
@@ -122,9 +199,7 @@ function SettingsUI.show(options)
             {
                 {
                     text = "下载目录",
-                    callback = function()
-                        UIManager:show(InfoMessage:new{ text = storage:downloadDir() })
-                    end,
+                    callback = showDirectoryMenu,
                 },
             },
             {

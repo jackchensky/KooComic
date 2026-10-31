@@ -36,38 +36,142 @@ local function ensureDirectory(path)
     return lfs.mkdir(path)
 end
 
+local function normalizeDirectory(path)
+    path = Util.trim(path or "")
+    if path == "" then return nil end
+    if path ~= "/" then path = path:gsub("/+$", "") end
+    return path
+end
+
+local function isUnsafeDirectory(path)
+    if path == "/" then return true end
+    local lower = tostring(path):lower()
+    return lower:match("/plugins/?$") ~= nil
+        or lower:match("/settings/?$") ~= nil
+        or lower:match("/%.adds/koreader/?$") ~= nil
+        or lower:find("/.adds/koreader/", 1, true) ~= nil
+end
+
 function Storage:new(settings)
     return setmetatable({ settings = assert(settings, "settings required") }, self)
 end
 
-function Storage:downloadDir()
-    local configured = self.settings:download().directory
-    if configured and configured ~= "" then
-        ensureDirectory(configured)
-        return configured
-    end
+function Storage:setRecordRemovedCallback(callback)
+    self.on_record_removed = callback
+end
+
+function Storage:_recordRemoved(key)
+    if key ~= nil and self.on_record_removed then pcall(self.on_record_removed, key) end
+end
+
+function Storage:defaultDownloadDir()
     local home = G_reader_settings:readSetting("home_dir")
     if not home or home == "" then
         local full = DataStorage:getFullDataDir() or DataStorage:getDataDir()
         home = ffiUtil.dirname(full)
     end
-    local path = ffiUtil.joinPath(home, "KOOBONE")
+    return ffiUtil.joinPath(home, "KOOBONE")
+end
+
+function Storage:downloadDir()
+    local configured = normalizeDirectory(self.settings:download().directory)
+    if configured and configured ~= "" then
+        ensureDirectory(configured)
+        return configured
+    end
+    local path = self:defaultDownloadDir()
     ensureDirectory(path)
     return path
+end
+
+function Storage:validateDownloadDir(path)
+    path = normalizeDirectory(path)
+    if not path then return nil, "请选择一个下载目录。" end
+    if isUnsafeDirectory(path) then
+        return nil, "不能把系统根目录、KOReader 插件目录或设置目录用作漫画下载目录。"
+    end
+    local mode = fileMode(path)
+    if mode == nil then
+        local ok, err = ensureDirectory(path)
+        if not ok then return nil, "无法创建目录：" .. Util.cleanMessage(err) end
+        mode = fileMode(path)
+    end
+    if mode ~= "directory" then return nil, "所选路径不是文件夹。" end
+    local probe = ffiUtil.joinPath(path, ".koocomic-write-test-" .. tostring(os.time()))
+    local handle, open_err = io.open(probe, "wb")
+    if not handle then return nil, "目录不可写：" .. Util.cleanMessage(open_err) end
+    local wrote, write_err = handle:write("KooComic")
+    handle:close()
+    if not wrote then
+        os.remove(probe)
+        return nil, "目录写入测试失败：" .. Util.cleanMessage(write_err)
+    end
+    local removed, remove_err = os.remove(probe)
+    if not removed then
+        return nil, "目录测试文件无法清理：" .. Util.cleanMessage(remove_err)
+    end
+    return path
+end
+
+function Storage:setDownloadDir(path)
+    local target = normalizeDirectory(path) or self:defaultDownloadDir()
+    local valid, err = self:validateDownloadDir(target)
+    if not valid then return nil, err end
+    local download = self.settings:download()
+    local current = normalizeDirectory(download.directory) or self:defaultDownloadDir()
+    if current ~= valid then
+        download.legacy_directories = type(download.legacy_directories) == "table"
+            and download.legacy_directories or {}
+        local exists = false
+        for _, legacy in ipairs(download.legacy_directories) do
+            if normalizeDirectory(legacy) == current then exists = true; break end
+        end
+        if not exists then download.legacy_directories[#download.legacy_directories + 1] = current end
+    end
+    download.directory = valid == self:defaultDownloadDir() and nil or valid
+    self.settings:flush()
+    return valid
 end
 
 function Storage:itemKey(item)
     return tostring(item.file_md5 or item.vol_id or item.vol_name or item.vol_series or "unknown")
 end
 
-function Storage:itemPath(item)
+function Storage:_filename(item)
     local extension = Util.trim(item.file_type or "epub"):lower()
     if extension == "" or extension:find("[^%w]", 1) then extension = "epub" end
     local title = Util.safeFilename(item.vol_name or item.vol_series or item.file_md5)
-    return ffiUtil.joinPath(self:downloadDir(), title .. "." .. extension)
+    return title .. "." .. extension
+end
+
+function Storage:newItemPath(item)
+    return ffiUtil.joinPath(self:downloadDir(), self:_filename(item))
+end
+
+function Storage:itemPath(item)
+    local key = self:itemKey(item)
+    local record = self.settings:download().records[key]
+    if type(record) == "table" and type(record.path) == "string" and record.path ~= "" then
+        if fileMode(record.path) == "file" or fileMode(record.path .. ".part") == "file" then
+            return record.path
+        end
+    end
+    local filename = self:_filename(item)
+    for _, directory in ipairs(self.settings:download().legacy_directories or {}) do
+        local candidate = ffiUtil.joinPath(directory, filename)
+        if fileMode(candidate) == "file" or fileMode(candidate .. ".part") == "file" then
+            return candidate
+        end
+    end
+    return self:newItemPath(item)
 end
 
 function Storage:partPath(item)
+    local record = self.settings:download().records[self:itemKey(item)]
+    if type(record) == "table" and type(record.part_path) == "string"
+        and record.part_path ~= "" and fileMode(record.part_path) == "file" then
+        return record.part_path
+    end
     return self:itemPath(item) .. ".part"
 end
 
@@ -145,6 +249,7 @@ function Storage:removeRecord(key)
     if key == nil or records[key] == nil then return true, false end
     records[key] = nil
     self.settings:flush()
+    self:_recordRemoved(key)
     return true, true
 end
 
@@ -162,6 +267,7 @@ function Storage:_deleteRecordFiles(key, final_path, part_path, delete_final, de
     end
     if key ~= nil then self.settings:download().records[key] = nil end
     self.settings:flush()
+    self:_recordRemoved(key)
     return true, removed_bytes
 end
 
@@ -229,6 +335,7 @@ function Storage:cleanupMissingRecords()
         local info = self:recordInfo{ key = key, value = value }
         if info and not info.exists and not info.part_exists then
             records[key] = nil
+            self:_recordRemoved(key)
             removed = removed + 1
         end
     end
@@ -253,6 +360,7 @@ function Storage:cleanupPartialFiles()
                     value.error = nil
                 else
                     records[key] = nil
+                    self:_recordRemoved(key)
                 end
             else
                 errors[#errors + 1] = tostring(size_or_err)

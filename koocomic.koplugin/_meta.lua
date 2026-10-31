@@ -1,7 +1,7 @@
 local _ = require("gettext")
 
 return {
-    fullname = _("koo漫画"),
-    description = _("Unofficial KOOBONE comic library connector for KOReader."),
-    version = "0.4.1",
+    fullname = _("Koo可漫"),
+    description = _("KOOBONE comic library connector for KOReader using its API Key interface."),
+    version = "0.4.2",
 }

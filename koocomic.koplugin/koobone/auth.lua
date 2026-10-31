@@ -4,80 +4,49 @@ local Auth = {}
 Auth.__index = Auth
 
 function Auth:new(settings, api)
-    return setmetatable({
-        settings = assert(settings, "settings required"),
-        api = assert(api, "api required"),
-    }, self)
+    local object = setmetatable({ settings = assert(settings), api = assert(api) }, self)
+    api.auth = object
+    return object
 end
 
 function Auth:hasSession()
     local account = self.settings:account()
-    -- KBSKEY was required by the legacy web flow, but current sessions may be
-    -- authenticated by VLIBSID alone. validateSession() always confirms the
-    -- stored session with /uinfo.php before it is used.
-    return account.vlibsid ~= nil and account.uin ~= nil
+    return type(account.api_key) == "string" and account.api_key ~= ""
+        and type(account.sess_key) == "string" and account.sess_key ~= ""
+        and tonumber(account.uin) ~= nil
 end
 
-function Auth:validateSession()
-    if not self:hasSession() then return nil, "尚未登录" end
-    local info, err = self.api:userInfo()
-    if not info then return nil, err end
+-- Keep the existing account untouched until the new key is verified. This
+-- allows users to correct an input error without losing the previous session.
+function Auth:login(key)
+    key = Util.trim(key)
+    if key == "" then return nil, "请输入 API Key" end
+    if key:find("[%c%s]") then return nil, "API Key 不能包含空格或换行，请检查输入" end
+    local info, err, invalid = self.api:exchangeApiKey(key)
+    if not info then return nil, err, invalid end
     local account = self.settings:account()
-    account.uin = tonumber(info.uin)
-    account.nick = info.nick or account.nick
-    self.settings:flush()
-    return true, info
-end
-
-function Auth:login(email, password, remember)
-    email = Util.trim(email)
-    password = tostring(password or "")
-    if email == "" or password == "" then return nil, "请输入邮箱和密码" end
-
-    local account = self.settings:account()
-    account.vlibsid = nil
-    account.kbskey = nil
-    account.uin = nil
-    account.nick = nil
-    self.settings:flush()
-
-    local ok, err = self.api:login(email, password)
-    if not ok then return nil, err end
-    local info, info_err = self.api:userInfo()
-    if not info then
-        self.settings:clearSession()
-        return nil, info_err
-    end
-    account = self.settings:account()
-    account.uin = tonumber(info.uin)
+    account.api_key = key
+    account.sess_key = info.sess_key
+    account.skey_exp = info.skey_exp
+    account.uin = info.uin
     account.nick = info.nick
-    self.settings:setCredentials(email, password, remember)
-    password = nil
+    self.settings:flush()
     return true, info
 end
 
 function Auth:restore()
-    if self:hasSession() then
-        local valid, err = self:validateSession()
-        if valid then return true end
-        local message = tostring(err or "")
-        local expired = message:find("登录状态已失效", 1, true)
-            or message:find("HTTP 401", 1, true)
-            or message:find("HTTP 403", 1, true)
-        if not expired then
-            -- Keep the session on transport, TLS, Cloudflare, or malformed
-            -- response errors. A temporary network failure must not force the
-            -- user to type credentials again.
-            return nil, err or "无法验证登录状态", false
-        end
-        self.settings:clearSession()
-    end
     local account = self.settings:account()
-    if account.remember_password and account.email ~= "" and account.password then
-        local ok, result = self:login(account.email, account.password, true)
-        return ok, result, ok ~= true
+    if type(account.api_key) ~= "string" or account.api_key == "" then
+        return nil, "请输入 API Key", true
     end
-    return nil, "需要登录", true
+    if self:hasSession() and (tonumber(account.skey_exp) or 0) > os.time() + 60 then
+        return true
+    end
+    local ok, err, invalid = self:login(account.api_key)
+    if ok then return true end
+    -- Preserve the key and session on every failure, including a temporary
+    -- outage; prompt for a replacement only on an explicit invalid-key reply.
+    return nil, err, invalid == true
 end
 
 function Auth:logout()

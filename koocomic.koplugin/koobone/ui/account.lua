@@ -10,12 +10,11 @@ function AccountUI.show(options)
     local auth = assert(options.auth, "auth required")
     local account = settings:account()
     local status = auth:hasSession() and "已登录" or "未登录"
-    local remembered = account.remember_password and "已开启" or "未开启"
     local body = table.concat({
         "状态：" .. status,
         "昵称：" .. tostring(account.nick or "—"),
-        "邮箱：" .. tostring(account.email ~= "" and account.email or "—"),
-        "记住密码：" .. remembered,
+        "API Key：" .. (account.api_key and "已保存在本机" or "未设置"),
+        account.remember_password and "旧版密码：仍保存在本机，可在下方清除" or "",
     }, "\n")
     local dialog
     dialog = InfoPanel:new{
@@ -26,7 +25,7 @@ function AccountUI.show(options)
         buttons = {
             {
                 {
-                    text = auth:hasSession() and "重新登录" or "登录",
+                    text = account.api_key and "更换 API Key" or "连接账号",
                     callback = function()
                         dialog:close()
                         if options.on_login then options.on_login() end
@@ -35,7 +34,7 @@ function AccountUI.show(options)
             },
             {
                 {
-                    text = "清除已保存密码",
+                    text = "清除旧版密码",
                     enabled = account.remember_password == true,
                     callback = function()
                         settings:clearPassword()
@@ -47,10 +46,10 @@ function AccountUI.show(options)
             {
                 {
                     text = "退出账号",
-                    enabled = auth:hasSession(),
+                    enabled = account.api_key ~= nil or account.remember_password == true,
                     callback = function()
                         UIManager:show(ConfirmBox:new{
-                            text = "退出后将清除会话和已保存密码，但不会删除已下载漫画。",
+                            text = "退出后将清除本机 API Key、会话和已保存的旧版密码，但不会删除已下载漫画。",
                             cancel_text = "取消",
                             ok_text = "退出账号",
                             ok_callback = function()

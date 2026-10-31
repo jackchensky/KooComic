@@ -63,7 +63,7 @@ PACKAGE_URL="https://github.com/${URL_REPOSITORY}/releases/download/v${VERSION}/
 
 printf '%s  %s\n' "$SHA256" "$ARCHIVE_NAME" > "$RELEASE_DIR/$ARCHIVE_NAME.sha256"
 python3 - "$VERSION" "$PACKAGE_URL" "$SIZE" "$SHA256" \
-    "$(date -u +%Y-%m-%d)" "$RELEASE_NOTES_FILE" "$PAGES_DIR/update.json" \
+    "$(TZ=Asia/Shanghai date +%Y-%m-%d)" "$RELEASE_NOTES_FILE" "$PAGES_DIR/update.json" \
     "$RELEASE_DIR/release-notes.md" <<'PY'
 import json
 import pathlib

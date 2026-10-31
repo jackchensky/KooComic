@@ -56,7 +56,7 @@ function Metrics.grid(ui)
     local metric = Metrics.screen()
     ui = type(ui) == "table" and ui or {}
     if metric.portrait then
-        return clamp(ui.portrait_columns or 3, 2, 4), clamp(ui.portrait_rows or 2, 1, 3)
+        return clamp(ui.portrait_columns or 4, 2, 4), clamp(ui.portrait_rows or 3, 1, 3)
     end
     return clamp(ui.landscape_columns or 4, 2, 5), clamp(ui.landscape_rows or 2, 1, 3)
 end

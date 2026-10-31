@@ -1,9 +1,14 @@
-koo漫画 for KOReader
-Copyright (C) 2026 koo漫画 contributors
+KooComic·可漫 for KOReader
+Copyright (C) 2026 KooComic·可漫 contributors
 
 This project is distributed under the GNU Affero General Public License
 version 3 only (AGPL-3.0-only).
 
-koo漫画 is an independently developed, unofficial KOReader plugin. It is not
-affiliated with, sponsored by, or endorsed by KOOBONE, Bookof.hk, or their
-developers. The KOOBONE name is used only to identify the compatible service.
+KooComic·可漫 uses the API Key interface scheme provided by KOOBONE. The plugin
+itself is independently developed and maintained by this project and is not a
+KOOBONE official client. Its interface, features, releases, and support are the
+responsibility of this project. The KOOBONE name identifies the connected
+service and the source of the interface scheme.
+
+The bundled shelf icons are adapted from Lucide 0.468.0 (ISC License).
+See icons/LICENSE-lucide.txt for the attribution and license text.

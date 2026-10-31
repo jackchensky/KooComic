@@ -1,6 +1,6 @@
 # 安全政策
 
-koo漫画会处理 KOOBONE 登录会话、本机可选保存的密码，以及 GitHub Release 在线更新。请不要在公开 Issue 中披露可能影响用户账号或更新安全的细节。
+KooComic·可漫会处理 KOOBONE API Key、短期登录会话、旧版可能遗留在本机的密码，以及 GitHub Release 在线更新。请不要在公开 Issue 中披露可能影响用户账号或更新安全的细节。
 
 ## 支持范围
 

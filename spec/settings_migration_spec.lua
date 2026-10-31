@@ -39,10 +39,15 @@ assert(settings:account().email == "reader@example.test")
 assert(settings:account().nick == "Reader")
 assert(settings:account().remember_password == true)
 assert(settings:account().password == "local-test-only")
-assert(settings:ui().portrait_columns == 3)
-assert(settings:ui().portrait_rows == 2)
+assert(settings:ui().portrait_columns == 4)
+assert(settings:ui().portrait_rows == 3)
 assert(settings:ui().text_size == "large")
-assert(settings.data.schema_version == 3)
+assert(settings.data.schema_version == 5)
+assert(settings:ui().quick_filters.works == true)
+assert(settings:ui().quick_filters.downloaded == true)
+assert(settings:ui().quick_filters.not_downloaded == true)
+assert(settings:ui().quick_filters.reading == false)
+assert(type(settings:download().legacy_directories) == "table")
 assert(files["/settings/koobone.lua"].data.account.nick == "Reader")
 assert(files["/settings/koocomic.lua"].data.account.nick == "Reader")
 
@@ -50,14 +55,18 @@ assert(files["/settings/koocomic.lua"].data.account.nick == "Reader")
 -- existing user's explicit choice to turn it off must remain untouched.
 local fresh = Settings:new("/settings/fresh.lua")
 assert(fresh:update().auto_check_enabled == true)
+assert(fresh:ui().portrait_columns == 4 and fresh:ui().portrait_rows == 3)
+assert(fresh:ui().quick_filters.works == true)
 
 files["/settings/existing.lua"] = {
     data = {
         schema_version = 3,
         update = { auto_check_enabled = false },
+        ui = { portrait_columns = 3, portrait_rows = 2 },
     },
 }
 local existing = Settings:new("/settings/existing.lua")
 assert(existing:update().auto_check_enabled == false)
+assert(existing:ui().portrait_columns == 4 and existing:ui().portrait_rows == 3)
 
 print("settings migration spec: OK")

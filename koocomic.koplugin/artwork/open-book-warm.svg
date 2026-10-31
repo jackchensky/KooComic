@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="280" viewBox="0 0 400 280">
+<!-- Original KooComic artwork. AGPL-3.0-only. Content slots: left 44,43,130,179; right 226,43,130,179. -->
+<defs>
+ <linearGradient id="left" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#cbb99c"/><stop offset=".10" stop-color="#fffdf7"/><stop offset=".81" stop-color="#fffdf7"/><stop offset="1" stop-color="#cbb99c"/></linearGradient>
+ <linearGradient id="right" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#cbb99c"/><stop offset=".19" stop-color="#fffdf7"/><stop offset=".90" stop-color="#fffdf7"/><stop offset="1" stop-color="#cbb99c"/></linearGradient>
+</defs>
+<ellipse cx="200" cy="260" rx="188" ry="11" fill="#67503b" opacity=".07"/>
+<ellipse cx="200" cy="257" rx="177" ry="8" fill="#67503b" opacity=".13"/>
+<path d="M25 34 Q111 16 198 42 Q288 16 375 34 L390 248 Q294 234 207 259 L193 259 Q106 234 10 248 Z" fill="#89633f"/>
+<path d="M27 30 Q111 13 198 39 Q289 13 373 30 L385 241 Q290 227 201 252 Q110 227 15 241 Z" fill="#cbb48f" stroke="#c6b397" stroke-width="1.4"/>
+<path d="M24 231 Q110 217 198 245 M22 235 Q110 221 198 249 M202 245 Q290 217 376 231 M202 249 Q290 221 378 235" fill="none" stroke="#fffdf7" stroke-width="2"/>
+<path d="M30 26 Q111 6 198 35 L198 243 Q108 219 18 236 Z" fill="url(#left)" stroke="#c6b397" stroke-width="1.4"/>
+<path d="M202 35 Q289 6 370 26 L382 236 Q292 219 202 243 Z" fill="url(#right)" stroke="#c6b397" stroke-width="1.4"/>
+<path d="M34 30 Q112 11 194 39 M206 39 Q288 11 366 30" fill="none" stroke="#fffdf7" stroke-width="2.5"/>
+<path d="M198 35 Q200 109 198 243 Q200 247 202 243 Q200 109 202 35" fill="#8b704d"/>
+<path d="M193 40 Q195 142 193 237 M207 40 Q205 142 207 237" fill="none" stroke="#fffdf7" stroke-width="1.7" opacity=".8"/>
+<path d="M24 234 Q109 217 194 241 M206 241 Q291 217 376 234" fill="none" stroke="#c6b397" stroke-width="1.5"/>
+</svg>

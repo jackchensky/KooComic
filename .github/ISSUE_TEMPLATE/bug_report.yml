@@ -27,7 +27,7 @@ body:
   - type: input
     id: plugin_version
     attributes:
-      label: koo漫画版本
+      label: Koo可漫版本
       placeholder: 例如 v0.4.0
     validations:
       required: true

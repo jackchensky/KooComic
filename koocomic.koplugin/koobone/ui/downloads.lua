@@ -277,7 +277,7 @@ function DownloadsUI.show(storage, downloader)
         end
     end
     menu = Menu:new{
-        title = "koo漫画下载",
+        title = "KooComic·可漫下载",
         subtitle = tostring(#records) .. " 条记录",
         item_table = rows,
         is_borderless = true,

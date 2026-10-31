@@ -1,5 +1,5 @@
 return {
-    version = "0.4.1",
+    version = "0.4.2",
 
     manifest_url = "https://jackchensky.github.io/KooComic/update.json",
     release_prefix = "https://github.com/jackchensky/KooComic/releases/download/",

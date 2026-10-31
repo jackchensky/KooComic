@@ -1,4 +1,4 @@
--- koo漫画 for KOReader
+-- KooComic·可漫 for KOReader
 -- SPDX-License-Identifier: AGPL-3.0-only
 --
 -- The plugin only accesses the library of the account that signs in. Network
@@ -20,6 +20,7 @@ local DownloadsUI = require("koobone.ui.downloads")
 local Library = require("koobone.library")
 local LoginDialog = require("koobone.ui.login_dialog")
 local PluginVersion = require("koobone.plugin_version")
+local ReadingPreview = require("koobone.reading_preview")
 local Settings = require("koobone.settings")
 local SettingsUI = require("koobone.ui.settings")
 local Storage = require("koobone.storage")
@@ -40,6 +41,10 @@ function KooComic:init()
     self.api = Api:new(self.settings)
     self.auth = Auth:new(self.settings, self.api)
     self.storage = Storage:new(self.settings)
+    self.reading_preview = ReadingPreview:new(self.storage)
+    self.storage:setRecordRemovedCallback(function(key)
+        self.reading_preview:clear(key)
+    end)
     self.cover_cache = CoverCache:new(self.api)
     self.library = Library:new(self.api, self.storage)
     self.downloader = Downloader:new{
@@ -69,6 +74,7 @@ function KooComic:init()
         downloader = self.downloader,
         settings = self.settings,
         cover_cache = self.cover_cache,
+        reading_preview = self.reading_preview,
         on_downloads = function() self:showDownloads() end,
         on_account = function() self:showAccount() end,
         on_settings = function() self:showSettings() end,
@@ -82,9 +88,33 @@ function KooComic:init()
     self.updater:confirmInstalledUpdate()
 end
 
+
+function KooComic:_queueReadingPreview(token)
+    if self.reading_preview and self.ui and self.ui.document then
+        self.reading_preview:queue(self.ui, token)
+    end
+end
+
+function KooComic:onReaderReady()
+    local page = self.ui and self.ui.getCurrentPage and self.ui:getCurrentPage()
+    self:_queueReadingPreview(page)
+end
+
+function KooComic:onPageUpdate(page)
+    self:_queueReadingPreview(page)
+end
+
+function KooComic:onPosUpdate(pos, page)
+    self:_queueReadingPreview(page or pos)
+end
+
+function KooComic:onCloseDocument()
+    if self.reading_preview then self.reading_preview:close() end
+end
+
 function KooComic:addToMainMenu(menu_items)
     menu_items.koocomic = {
-        text = "koo漫画",
+        text = "Koo可漫",
         sorting_hint = "tools",
         sub_item_table = {
             {
@@ -107,13 +137,14 @@ function KooComic:addToMainMenu(menu_items)
                 callback = function() self:showSettings() end,
             },
             {
-                text = "关于 koo漫画",
+                text = "关于 KooComic·可漫",
                 keep_menu_open = true,
                 callback = function()
                     UIManager:show(InfoMessage:new{
-                        text = "koo漫画 for KOReader\nv" .. self.version ..
-                            "\n\n连接用户自己的 KOOBONE 漫画书库、下载 EPUB 并在 KOReader 中阅读。" ..
-                            "\n\n这是独立开发的非官方插件，与 KOOBONE、Bookof.hk 及其开发者不存在隶属、赞助或官方合作关系。" ..
+                        text = "KooComic·可漫 for KOReader\nv" .. (PluginVersion.display_version or self.version) ..
+                            "\n\n使用 KOOBONE 提供的 API Key 接口方案，连接用户自己的漫画书库、下载 EPUB 并在 KOReader 中阅读。" ..
+                            "\n\n插件由 Jackchen 独立开发和维护，不是 KOOBONE 官方客户端；界面、功能、发布与支持由本项目负责。" ..
+                            "\n\n用Koo可漫让你的KOOBONE漫画在Kindle上可以自在漫读。—— @Jackchen" ..
                             "\n\n许可证：AGPL-3.0-only",
                     })
                 end,
@@ -184,7 +215,8 @@ function KooComic:showSettings()
         updater = self.updater,
         updater_ui = self.updater_ui,
         storage = self.storage,
-        version = self.version,
+        downloader = self.downloader,
+        version = PluginVersion.display_version or self.version,
         on_ui_changed = function()
             if self.bookshelf and self.bookshelf.menu then self.bookshelf:show(self.library.items) end
         end,

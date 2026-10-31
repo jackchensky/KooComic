@@ -78,7 +78,9 @@ local function normalizeNotes(notes)
         notes = table.concat(rows, "\n")
     end
     notes = tostring(notes or "")
-    if #notes > 1800 then notes = notes:sub(1, 1797) .. "..." end
+    -- The update dialog is scrollable, so keep the complete v0.4.2 notes while
+    -- retaining a conservative bound for malformed manifests on older devices.
+    if #notes > 3600 then notes = Util.truncateUtf8(notes, 3600, "...") end
     return notes
 end
 
@@ -148,7 +150,7 @@ function Updater:check()
         redirect = true,
         headers = {
             ["Accept"] = "application/json",
-            ["User-Agent"] = "kooComic-KOReader-Updater/0.4.1",
+            ["User-Agent"] = "KooComic-KOReader-Updater/" .. tostring(self.current_version),
         },
         block_timeout = 15,
         total_timeout = 30,
@@ -275,7 +277,7 @@ function Updater:install(release, on_progress)
         max_bytes = self.MAX_PACKAGE_BYTES,
         headers = {
             ["Accept"] = "application/zip, application/octet-stream",
-            ["User-Agent"] = "kooComic-KOReader-Updater/0.4.1",
+            ["User-Agent"] = "KooComic-KOReader-Updater/" .. tostring(self.current_version),
         },
         on_progress = function(current, total)
             local ratio = total > 0 and math.min(1, current / total) or 0

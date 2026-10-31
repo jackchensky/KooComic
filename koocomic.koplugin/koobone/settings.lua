@@ -5,8 +5,11 @@ Settings.__index = Settings
 
 local function defaults()
     return {
-        schema_version = 3,
+        schema_version = 5,
         account = {
+            api_key = nil,
+            sess_key = nil,
+            skey_exp = nil,
             email = "",
             password = nil,
             remember_password = false,
@@ -17,6 +20,7 @@ local function defaults()
         },
         download = {
             directory = nil,
+            legacy_directories = {},
             records = {},
         },
         update = {
@@ -33,11 +37,18 @@ local function defaults()
             pending_version = nil,
         },
         ui = {
-            portrait_columns = 3,
-            portrait_rows = 2,
+            portrait_columns = 4,
+            portrait_rows = 3,
             landscape_columns = 4,
             landscape_rows = 2,
             text_size = "large",
+            quick_filters = {
+                works = true,
+                downloaded = true,
+                not_downloaded = true,
+                reading = false,
+                unread = false,
+            },
         },
     }
 end
@@ -66,6 +77,7 @@ end
 
 function Settings:load()
     local data = self.handle:readSetting("data")
+    local previous_schema = type(data) == "table" and tonumber(data.schema_version) or 0
     if type(data) ~= "table" then
         local legacy
         if self.legacy_path and self.legacy_path ~= self.path then
@@ -93,7 +105,13 @@ function Settings:load()
     if data.account.remember_password ~= true then
         data.account.password = nil
     end
-    data.schema_version = 3
+    -- Older installations stored the former 3 × 2 defaults as ordinary UI
+    -- values. Migrate that exact pair to the new shelf layout once.
+    if previous_schema < 4 and data.ui.portrait_columns == 3 and data.ui.portrait_rows == 2 then
+        data.ui.portrait_columns = 4
+        data.ui.portrait_rows = 3
+    end
+    data.schema_version = 5
     self.data = data
     self:flush()
 end
@@ -138,12 +156,15 @@ function Settings:clearSession()
     local account = self:account()
     account.vlibsid = nil
     account.kbskey = nil
+    account.sess_key = nil
+    account.skey_exp = nil
     account.uin = nil
     account.nick = nil
     self:flush()
 end
 
 function Settings:logout()
+    self:account().api_key = nil
     self:clearSession()
     self:clearPassword()
 end

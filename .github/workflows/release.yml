@@ -1,4 +1,4 @@
-name: Release koo漫画 plugin
+name: Release KooComic·可漫 plugin
 
 on:
   push:
@@ -49,7 +49,7 @@ jobs:
             dist/release/update.json \
             --verify-tag \
             --notes-file dist/release/release-notes.md \
-            --title "koo漫画 v${{ steps.version.outputs.value }}"
+            --title "KooComic·可漫 v${{ steps.version.outputs.value }}"
 
       - name: Upload fixed update manifest for GitHub Pages
         uses: actions/upload-pages-artifact@v5

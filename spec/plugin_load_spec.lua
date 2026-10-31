@@ -29,6 +29,8 @@ local noop_widget_modules = {
     "ui/widget/container/inputcontainer",
     "ui/widget/progresswidget",
     "ui/widget/textboxwidget",
+    "ui/widget/textviewer",
+    "ui/widget/scrolltextwidget",
     "ui/widget/textwidget",
     "ui/widget/widget",
     "ui/widget/iconwidget",
@@ -161,7 +163,7 @@ G_reader_settings = {
 }
 
 local Plugin = dofile("koocomic.koplugin/main.lua")
-assert(Plugin.version == "0.4.1")
+assert(Plugin.version == "0.4.2")
 local instance = Plugin:new{
     ui = { menu = { registerToMainMenu = function() end } },
 }

@@ -8,6 +8,9 @@ local Api = {}
 Api.__index = Api
 
 Api.BASE = "https://bookof.hk"
+-- The API-key integration uses KOOBONE's documented service, not the legacy
+-- web-login host. Never send either credential to redirects or other hosts.
+Api.API_BASE = "https://www.koobone.com"
 Api.WEB_VERSION = "7"
 Api.CLIENT_VERSION = "KOOBONE/5.0.0"
 -- bookof.hk currently returns only {"msgid":"e499"} when its login
@@ -39,36 +42,158 @@ function Api:headers(extra, include_session)
     return headers
 end
 
+function Api:apiHeaders(credential)
+    return {
+        ["Accept"] = "application/json",
+        ["User-Agent"] = self.USER_AGENT,
+        ["X-KB-FROM"] = "KooComic/0.4.2 (KOReader)",
+        ["X-KB-INFO"] = credential,
+    }
+end
+
+local function matchesServer(cert, host)
+    if not cert then return false end
+    if type(cert.checkhost) == "function" then
+        local ok, matched = pcall(cert.checkhost, cert, host)
+        return ok and matched == true
+    end
+    -- Older LuaSec builds expose DNS subjectAltName entries instead. Match
+    -- exact names or a whole-label wildcard only; never fall back to CN.
+    if type(cert.extensions) ~= "function" then return false end
+    local ok, extensions = pcall(cert.extensions, cert)
+    local san = ok and type(extensions) == "table" and extensions["2.5.29.17"]
+    local names = type(san) == "table" and san.dNSName
+    if type(names) ~= "table" then return false end
+    for _, name in ipairs(names) do
+        if type(name) == "string" then
+            name = name:lower()
+            if name == host or (name:sub(1, 2) == "*." and
+                    host:match("^[^.]+%.(.+)$") == name:sub(3)) then return true end
+        end
+    end
+    return false
+end
+
+function Api:secureCreate()
+    if http.PROXY then return nil, "API Key 连接暂不支持 HTTP 代理" end
+    local candidates = { "data/ca-bundle.crt", "/mnt/us/koreader/data/ca-bundle.crt" }
+    local env_ca = os.getenv("SSL_CERT_FILE")
+    if env_ca and env_ca ~= "" then table.insert(candidates, 1, env_ca) end
+    local ca
+    for _, path in ipairs(candidates) do
+        local handle = io.open(path, "rb")
+        if handle then handle:close(); ca = path; break end
+    end
+    if not ca then return nil, "无法找到 KOReader 证书文件，请更新 KOReader 后重试" end
+    local ok, https = pcall(require, "ssl.https")
+    if not ok or type(https.tcp) ~= "function" then
+        return nil, "当前 KOReader 不支持安全连接，请更新 KOReader 后重试"
+    end
+    local create = https.tcp{ verify = "peer", cafile = ca }
+    return function()
+        local connection = create()
+        local connect = connection.connect
+        function connection:connect(host, port)
+            if host ~= "www.koobone.com" then return nil, "服务器地址不匹配" end
+            local connected, err = connect(self, host, port)
+            if not connected then return nil, err end
+            local valid, certificate = pcall(function() return self:getpeercertificate() end)
+            if not valid or not matchesServer(certificate, "www.koobone.com") then
+                self:close()
+                return nil, "服务器证书域名验证失败"
+            end
+            return connected
+        end
+        return connection
+    end
+end
+
+-- Exchange the long-lived API key for the short-lived session documented by
+-- KOOBONE. Do not persist anything until the whole response is validated.
+function Api:exchangeApiKey(key)
+    local data, err = self:requestJson{
+        url = self.API_BASE .. "/uinfo.php",
+        method = "GET",
+        headers = self:apiHeaders(key),
+        redirect = false,
+        secure_credentials = true,
+    }
+    if not data then
+        if tostring(err):match("^HTTP 401[%s$]") then
+            return nil, "API Key 无效或已失效，请检查后重新输入", true
+        end
+        return nil, err
+    end
+    if tonumber(data.msgid) == 401 then
+        return nil, "API Key 无效或已失效，请检查后重新输入", true
+    end
+    local session = type(data.sess_key) == "string" and data.sess_key or ""
+    local expires = tonumber(data.skey_exp)
+    local uin = tonumber(data.uin)
+    if tonumber(data.msgid) ~= 0 or not uin or uin <= 0 or session == ""
+        or #session > 64 or session:find("[%c]") or not expires or expires <= os.time() then
+        return nil, "服务器返回的账号信息无效，请稍后重试"
+    end
+    return {
+        uin = uin,
+        nick = data.nick,
+        sess_key = session,
+        skey_exp = expires,
+    }
+end
+
 function Api:request(options)
     options = options or {}
-    local chunks
-    if not options.sink then
-        chunks = {}
-        options.sink = socketutil.table_sink(chunks)
+    local buffered_get = (options.method == nil or options.method == "GET")
+        and options.sink == nil and options.source == nil
+    local attempts = buffered_get and 2 or 1
+    for attempt = 1, attempts do
+        local request_options = {}
+        for key, value in pairs(options) do request_options[key] = value end
+        if options.secure_credentials then
+            local create, secure_err = self:secureCreate()
+            if not create then return nil, secure_err end
+            request_options.create = create
+        end
+        request_options.headers = options.headers or self:headers(nil, options.include_session)
+        request_options.redirect = options.redirect == true
+        socketutil:set_timeout(options.block_timeout or 20, options.total_timeout or 90)
+        local chunks
+        if not options.sink then
+            chunks = {}
+            -- table_sink captures KOReader's current timeout when created.
+            request_options.sink = socketutil.table_sink(chunks)
+        end
+        -- KOReader's LuaSocket performs its own HTTPS adjustment when an
+        -- https:// URL is passed to socket.http.request. Keep that path.
+        local called, first, raw_code, headers, status = pcall(http.request, request_options)
+        socketutil:reset_timeout()
+        local code = called and tonumber(raw_code) or nil
+        if code then
+            return {
+                code = code,
+                headers = headers or {},
+                status = status,
+                body = chunks and table.concat(chunks) or first,
+            }
+        end
+        -- LuaSocket returns nil, error_message for transport failures.
+        local err = Util.cleanMessage(called and
+            (status or raw_code or first or "network error") or first)
+        local lowered = err:lower()
+        local wait_code = lowered:find("wantread", 1, true) and "wantread"
+            or lowered:find("wantwrite", 1, true) and "wantwrite"
+            or lowered:find("timeout", 1, true) and "timeout"
+        if not (buffered_get and attempt < attempts and wait_code) then
+            if wait_code then
+                local host = tostring(options.url or ""):match("^https?://([^/%?]+)")
+                return nil, "网络等待超时（" .. wait_code ..
+                    (host and "；主机 " .. host or "") ..
+                    (attempt > 1 and "；已重试一次" or "；未自动重试") .. "）"
+            end
+            return nil, err
+        end
     end
-    options.headers = options.headers or self:headers(nil, options.include_session)
-    options.redirect = options.redirect == true
-    socketutil:set_timeout(options.block_timeout or 20, options.total_timeout or 90)
-    -- KOReader's LuaSocket performs its own HTTPS adjustment when an https://
-    -- URL is passed to socket.http.request. Calling ssl.https.request directly
-    -- bypasses that compatibility path on some Kindle builds and can fail for
-    -- redirected CDN downloads even though the JSON requests still work.
-    local called, first, raw_code, headers, status = pcall(http.request, options)
-    socketutil:reset_timeout()
-    if not called then return nil, Util.cleanMessage(first) end
-    local code = tonumber(raw_code)
-    if not code then
-        -- LuaSocket returns nil, error_message for transport failures. Preserve
-        -- the second value before converting HTTP status codes to numbers.
-        return nil, Util.cleanMessage(status or raw_code or first or "network error")
-    end
-    local body = chunks and table.concat(chunks) or first
-    return {
-        code = code,
-        headers = headers or {},
-        status = status,
-        body = body,
-    }
 end
 
 function Api:requestOk(options, accepted)
@@ -245,16 +370,32 @@ function Api:userInfo()
 end
 
 function Api:library(limit)
+    if self.auth then
+        local ok, err = self.auth:restore()
+        if not ok then return nil, err end
+    end
     local account = self.settings:account()
-    if not account.uin then return nil, "尚未登录" end
+    if not account.uin or not account.sess_key then return nil, "尚未连接 KOOBONE" end
     local url = string.format("%s/vol_list.php?u=%s&by=time&limit=%d",
-        self.BASE, tostring(account.uin), tonumber(limit) or 28)
-    local data, err = self:requestJson{
-        url = url,
-        method = "GET",
-        headers = self:headers(),
-    }
+        self.API_BASE, tostring(account.uin), tonumber(limit) or 28)
+    local function fetch()
+        return self:requestJson{
+            url = url,
+            method = "GET",
+            headers = self:apiHeaders(account.sess_key),
+            secure_credentials = true,
+        }
+    end
+    local data, err = fetch()
+    local expired = (data and tonumber(data.msgid) == 401)
+        or (not data and tostring(err):match("^HTTP 401[%s$]"))
+    if expired and self.auth and account.api_key then
+        local ok, renew_err = self.auth:login(account.api_key)
+        if not ok then return nil, renew_err end
+        data, err = fetch()
+    end
     if not data then return nil, err end
+    if tonumber(data.msgid) == 401 then return nil, "登录状态已失效，请重新连接" end
     if type(data.data) ~= "table" then return nil, "书库响应无效或登录已过期" end
     return data
 end
