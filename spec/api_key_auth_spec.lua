@@ -43,10 +43,13 @@ assert(requests[1].redirect == false)
 
 replies[#replies+1] = { code = 200 }
 decoded[#decoded+1] = { data = {} }
-local shelf = assert(api:library(28))
+local shelf = assert(api:library(49, 2))
 assert(type(shelf.data) == "table")
 assert(requests[2].headers["X-KB-INFO"] == "temporary-session")
+assert(requests[2].headers["X-KB-FROM"] == "KooComic/0.4.3 (KOReader)")
 assert(requests[2].url:match("^https://www%.koobone%.com/vol_list%.php"))
+assert(requests[2].url:find("limit=49", 1, true))
+assert(requests[2].url:find("p=2", 1, true))
 
 -- A rejected replacement key never overwrites the existing credentials.
 replies[#replies+1] = { code = 200 }
@@ -62,7 +65,7 @@ replies[#replies+1] = { code = 200 }
 decoded[#decoded+1] = { msgid = 0, uin = 42, sess_key = "renewed-session", skey_exp = os.time() + 5000 }
 replies[#replies+1] = { code = 200 }
 decoded[#decoded+1] = { data = {} }
-assert(api:library(28))
+assert(api:library(49, 3))
 assert(requests[4].headers["X-KB-INFO"] == "temporary-session")
 assert(requests[5].headers["X-KB-INFO"] == "key-for-test")
 assert(requests[6].headers["X-KB-INFO"] == "renewed-session")

@@ -2,6 +2,7 @@ local JSON = require("json")
 local ltn12 = require("ltn12")
 local socketutil = require("socketutil")
 local http = require("socket.http")
+local PluginVersion = require("koobone.plugin_version")
 local Util = require("koobone.util")
 
 local Api = {}
@@ -46,7 +47,7 @@ function Api:apiHeaders(credential)
     return {
         ["Accept"] = "application/json",
         ["User-Agent"] = self.USER_AGENT,
-        ["X-KB-FROM"] = "KooComic/0.4.2 (KOReader)",
+        ["X-KB-FROM"] = "KooComic/" .. tostring(PluginVersion.version) .. " (KOReader)",
         ["X-KB-INFO"] = credential,
     }
 end
@@ -369,15 +370,19 @@ function Api:userInfo()
     return data
 end
 
-function Api:library(limit)
+function Api:library(limit, page)
     if self.auth then
         local ok, err = self.auth:restore()
         if not ok then return nil, err end
     end
     local account = self.settings:account()
     if not account.uin or not account.sess_key then return nil, "尚未连接 KOOBONE" end
-    local url = string.format("%s/vol_list.php?u=%s&by=time&limit=%d",
-        self.API_BASE, tostring(account.uin), tonumber(limit) or 28)
+    limit = math.floor(tonumber(limit) or 49)
+    page = math.floor(tonumber(page) or 1)
+    if limit < 1 then limit = 49 end
+    if page < 1 then page = 1 end
+    local url = string.format("%s/vol_list.php?u=%s&by=time&limit=%d&p=%d",
+        self.API_BASE, tostring(account.uin), limit, page)
     local function fetch()
         return self:requestJson{
             url = url,

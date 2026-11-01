@@ -163,7 +163,7 @@ G_reader_settings = {
 }
 
 local Plugin = dofile("koocomic.koplugin/main.lua")
-assert(Plugin.version == "0.4.2")
+assert(Plugin.version == "0.4.3")
 local instance = Plugin:new{
     ui = { menu = { registerToMainMenu = function() end } },
 }

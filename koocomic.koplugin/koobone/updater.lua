@@ -78,7 +78,7 @@ local function normalizeNotes(notes)
         notes = table.concat(rows, "\n")
     end
     notes = tostring(notes or "")
-    -- The update dialog is scrollable, so keep the complete v0.4.2 notes while
+    -- The update dialog is scrollable, so keep complete release notes while
     -- retaining a conservative bound for malformed manifests on older devices.
     if #notes > 3600 then notes = Util.truncateUtf8(notes, 3600, "...") end
     return notes
